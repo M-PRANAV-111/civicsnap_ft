@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, isMobileDevice, useApp } from './context/AppContext.jsx';
 
 // Mobile pages
 import Sidebar from './components/Sidebar.jsx';
+import InstallBanner from './components/InstallBanner.jsx';
 import CameraScreen from './pages/CameraScreen.jsx';
 import ComplaintForm from './pages/ComplaintForm.jsx';
 import ComplaintStatus from './pages/ComplaintStatus.jsx';
@@ -13,6 +14,7 @@ import ProfileScreen from './pages/ProfileScreen.jsx';
 import OfficerLogin from './pages/OfficerLogin.jsx';
 import OfficerDashboard from './pages/OfficerDashboard.jsx';
 import HeatmapScreen from './pages/HeatmapScreen.jsx';
+import MobileLogin from './pages/MobileLogin.jsx';
 
 // Desktop pages
 import DesktopLogin from './pages/DesktopLogin.jsx';
@@ -31,7 +33,7 @@ function useIsMobile() {
 }
 
 function RootRedirect() {
-  const { isAuthenticated, authUser } = useApp();
+  const { isAuthenticated } = useApp();
   const isMobile = useIsMobile();
 
   if (isMobile) {
@@ -48,10 +50,25 @@ function RootRedirect() {
   return <Navigate to="/dashboard" replace />;
 }
 
+function RequireAuth({ children, roles, redirectTo = '/login' }) {
+  const { authUser, isAuthenticated } = useApp();
+
+  if (!isAuthenticated) {
+    return <Navigate to={redirectTo} replace />;
+  }
+
+  if (roles?.length && !roles.includes(authUser?.role)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
+}
+
 function MobileRoutes() {
   return (
     <>
       <Sidebar />
+      <InstallBanner />
       <Routes>
         <Route path="/camera" element={<CameraScreen />} />
         <Route path="/submit" element={<ComplaintForm />} />
@@ -59,10 +76,25 @@ function MobileRoutes() {
         <Route path="/complaint/:id" element={<ComplaintDetails />} />
         <Route path="/review/:id" element={<ReviewScreen />} />
         <Route path="/profile" element={<ProfileScreen />} />
+        <Route path="/mobile-login" element={<MobileLogin />} />
         <Route path="/officer/login" element={<OfficerLogin />} />
-        <Route path="/officer/dashboard" element={<OfficerDashboard />} />
+        <Route
+          path="/officer/dashboard"
+          element={
+            <RequireAuth roles={['officer']} redirectTo="/officer/login">
+              <OfficerDashboard />
+            </RequireAuth>
+          }
+        />
         <Route path="/heatmap" element={<HeatmapScreen />} />
-        <Route path="/admin" element={<AdminDashboard />} />
+        <Route
+          path="/admin"
+          element={
+            <RequireAuth roles={['admin']}>
+              <AdminDashboard />
+            </RequireAuth>
+          }
+        />
         <Route path="*" element={<RootRedirect />} />
       </Routes>
     </>
@@ -79,24 +111,44 @@ function DesktopRoutes() {
       />
       <Route
         path="/dashboard"
-        element={isAuthenticated ? <DesktopLayout /> : <Navigate to="/login" replace />}
+        element={
+          <RequireAuth>
+            <DesktopLayout />
+          </RequireAuth>
+        }
       />
       {/* Sub-routes rendered inside DesktopLayout via Outlet */}
       <Route
         path="/admin"
-        element={isAuthenticated ? <DesktopLayout page="admin" /> : <Navigate to="/login" replace />}
+        element={
+          <RequireAuth roles={['admin']}>
+            <DesktopLayout page="admin" />
+          </RequireAuth>
+        }
       />
       <Route
         path="/officer/dashboard"
-        element={isAuthenticated ? <DesktopLayout page="officer" /> : <Navigate to="/login" replace />}
+        element={
+          <RequireAuth roles={['officer', 'admin']}>
+            <DesktopLayout page="officer" />
+          </RequireAuth>
+        }
       />
       <Route
         path="/heatmap"
-        element={isAuthenticated ? <DesktopLayout page="heatmap" /> : <Navigate to="/login" replace />}
+        element={
+          <RequireAuth>
+            <DesktopLayout page="heatmap" />
+          </RequireAuth>
+        }
       />
       <Route
         path="/status"
-        element={isAuthenticated ? <DesktopLayout page="status" /> : <Navigate to="/login" replace />}
+        element={
+          <RequireAuth>
+            <DesktopLayout page="status" />
+          </RequireAuth>
+        }
       />
       <Route path="*" element={<RootRedirect />} />
     </Routes>
@@ -107,7 +159,10 @@ function AppRouter() {
   const isMobile = useIsMobile();
 
   return (
-    <div className={`relative h-full flex flex-col ${isMobile ? 'max-w-md mx-auto' : ''}`}>
+    <div
+      className={`relative w-full h-full flex flex-col ${isMobile ? 'max-w-md mx-auto' : ''}`}
+      style={{ minHeight: '100dvh' }}
+    >
       {isMobile ? <MobileRoutes /> : <DesktopRoutes />}
     </div>
   );

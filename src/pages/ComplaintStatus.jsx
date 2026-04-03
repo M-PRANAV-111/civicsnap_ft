@@ -1,93 +1,158 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  AlertCircle,
+  CheckCircle2,
+  ClipboardList,
+  Clock,
+  ExternalLink,
+  Filter,
+  MapPin,
+  Menu,
+  Plus,
+  Star,
+  X,
+  XCircle,
+} from 'lucide-react';
 import { useApp } from '../context/AppContext.jsx';
 import ComplaintCard from '../components/ComplaintCard.jsx';
+import AttachmentList from '../components/AttachmentList.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
-import { Menu, Filter, ClipboardList, Plus, ArrowLeft, MapPin, Clock, X,
-  AlertCircle, CheckCircle2, XCircle, ExternalLink, Star } from 'lucide-react';
 
 const STATUS_FILTERS = ['All', 'Pending', 'In Progress', 'Resolved', 'Rejected'];
 
-const STATUS_ICONS = { Pending: AlertCircle, 'In Progress': Clock, Resolved: CheckCircle2, Rejected: XCircle };
-const STATUS_COLORS = { Pending: '#D97706', 'In Progress': '#1D4ED8', Resolved: '#059669', Rejected: '#DC2626' };
-const TIMELINE_DOT  = { Pending: '#FCD34D', 'In Progress': '#60A5FA', Resolved: '#34D399', Rejected: '#F87171' };
+const STATUS_ICONS = {
+  Pending: AlertCircle,
+  'In Progress': Clock,
+  Resolved: CheckCircle2,
+  Rejected: XCircle,
+};
+
+const STATUS_COLORS = {
+  Pending: '#D97706',
+  'In Progress': '#1D4ED8',
+  Resolved: '#059669',
+  Rejected: '#DC2626',
+};
+
+const TIMELINE_DOT = {
+  Pending: '#FCD34D',
+  'In Progress': '#60A5FA',
+  Resolved: '#34D399',
+  Rejected: '#F87171',
+};
 
 function formatDate(iso) {
-  return new Date(iso).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
-}
-function formatDateTime(iso) {
-  return new Date(iso).toLocaleString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  return new Date(iso).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
-/** Inline complaint detail panel for desktop */
-function ComplaintDetailPanel({ complaint, onClose }) {
+function formatDateTime(iso) {
+  return new Date(iso).toLocaleString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function ComplaintDetailPanel({ complaint, onClose, canReview }) {
   const navigate = useNavigate();
+
   if (!complaint) return null;
-  const mapsUrl = complaint.location
-    ? `https://www.google.com/maps?q=${complaint.location.lat},${complaint.location.lng}` : null;
+
+  const timeline = complaint.timeline || [];
+  const mapsUrl = complaint.mapsLink || (complaint.location ? `https://www.google.com/maps?q=${complaint.location.lat},${complaint.location.lng}` : null);
 
   return (
-    <div className="w-96 flex-shrink-0 border-l overflow-y-auto flex flex-col"
-      style={{ background: 'var(--cs-card)', borderColor: 'var(--cs-border)' }}>
-      {/* Panel header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0"
-        style={{ borderColor: 'var(--cs-border)' }}>
+    <div
+      className="w-96 flex-shrink-0 border-l overflow-y-auto flex flex-col"
+      style={{ background: 'var(--cs-card)', borderColor: 'var(--cs-border)' }}
+    >
+      <div
+        className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0"
+        style={{ borderColor: 'var(--cs-border)' }}
+      >
         <div>
           <p className="text-sm font-semibold" style={{ color: 'var(--cs-ink)' }}>{complaint.id}</p>
           <p className="text-xs mt-0.5" style={{ color: 'var(--cs-muted)' }}>{complaint.category}</p>
         </div>
-        <button onClick={onClose} className="btn-ghost w-8 h-8 p-0 justify-center rounded-lg">
+        <button type="button" onClick={onClose} className="btn-ghost w-8 h-8 p-0 justify-center rounded-lg">
           <X className="w-4 h-4" />
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
-        {/* Image */}
         {complaint.image ? (
-          <img src={complaint.image} alt="" className="w-full h-36 object-cover rounded-xl border"
-            style={{ borderColor: 'var(--cs-border)' }} />
+          <img
+            src={complaint.image}
+            alt="Complaint"
+            className="w-full h-36 object-cover rounded-xl border"
+            style={{ borderColor: 'var(--cs-border)' }}
+          />
         ) : (
-          <div className="w-full h-28 rounded-xl border flex flex-col items-center justify-center gap-2"
-            style={{ background: 'var(--cs-subtle)', borderColor: 'var(--cs-border)' }}>
+          <div
+            className="w-full h-28 rounded-xl border flex flex-col items-center justify-center gap-2"
+            style={{ background: 'var(--cs-subtle)', borderColor: 'var(--cs-border)' }}
+          >
             <ClipboardList className="w-7 h-7" style={{ color: 'rgba(75,85,99,0.3)' }} />
             <p className="text-xs" style={{ color: 'var(--cs-muted)' }}>No image</p>
           </div>
         )}
 
-        {/* Status */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <StatusBadge status={complaint.status} />
-          <span className="text-xs" style={{ color: 'var(--cs-muted)' }}>{formatDate(complaint.submittedAt)}</span>
+          <div className="flex items-center gap-2">
+            {complaint.syncStatus === 'queued' && (
+              <span
+                className="text-[11px] px-2 py-1 rounded-full border font-medium"
+                style={{ background: '#FFFBEB', borderColor: '#FDE68A', color: '#92400E' }}
+              >
+                Saved locally
+              </span>
+            )}
+            <span className="text-xs" style={{ color: 'var(--cs-muted)' }}>{formatDate(complaint.submittedAt)}</span>
+          </div>
         </div>
 
-        {/* Description */}
         <div className="card">
-          <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--cs-muted)' }}>Description</p>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--cs-muted)' }}>
+            Description
+          </p>
           <p className="text-sm leading-relaxed" style={{ color: 'var(--cs-ink)' }}>
             {complaint.description || 'No description provided'}
           </p>
         </div>
 
-        {/* Location */}
+        <AttachmentList attachments={complaint.attachments} />
+
         <div className="card flex items-start gap-3">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-            style={{ background: '#EFF6FF' }}>
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#EFF6FF' }}>
             <MapPin className="w-4 h-4" style={{ color: 'var(--cs-accent)' }} />
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide mb-0.5" style={{ color: 'var(--cs-muted)' }}>Location</p>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-0.5" style={{ color: 'var(--cs-muted)' }}>
+              Location
+            </p>
             <p className="text-sm" style={{ color: 'var(--cs-ink)' }}>{complaint.address}</p>
             {mapsUrl && (
-              <a href={mapsUrl} target="_blank" rel="noreferrer"
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noreferrer"
                 className="text-xs font-medium flex items-center gap-1 mt-1"
-                style={{ color: 'var(--cs-accent)' }}>
+                style={{ color: 'var(--cs-accent)' }}
+              >
                 Open Maps <ExternalLink className="w-3 h-3" />
               </a>
             )}
           </div>
         </div>
 
-        {/* Rejection */}
         {complaint.status === 'Rejected' && complaint.rejectionReason && (
           <div className="rounded-xl p-3 border border-red-200" style={{ background: '#FEF2F2' }}>
             <div className="flex items-center gap-1.5 mb-1">
@@ -98,30 +163,42 @@ function ComplaintDetailPanel({ complaint, onClose }) {
           </div>
         )}
 
-        {/* Resolution */}
         {complaint.status === 'Resolved' && (
           <div className="rounded-xl p-3 border border-emerald-200" style={{ background: '#ECFDF5' }}>
-            <div className="flex items-center gap-1.5 mb-1">
+            <div className="flex items-center gap-1.5 mb-2">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-              <span className="text-xs font-semibold text-emerald-700">Issue Resolved</span>
+              <span className="text-xs font-semibold text-emerald-700">Resolution</span>
             </div>
-            <p className="text-xs" style={{ color: '#065F46' }}>Marked as resolved by assigned officer.</p>
+            {complaint.resolutionProofUrl ? (
+              <img
+                src={complaint.resolutionProofUrl}
+                alt="Resolution proof"
+                className="w-full h-32 rounded-xl object-cover border"
+                style={{ borderColor: '#A7F3D0' }}
+              />
+            ) : (
+              <p className="text-xs" style={{ color: '#065F46' }}>Marked as resolved by the assigned officer.</p>
+            )}
           </div>
         )}
 
-        {/* Timeline */}
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--cs-muted)' }}>Timeline</p>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--cs-muted)' }}>
+            Timeline
+          </p>
           <div className="relative pl-5">
             <div className="absolute left-[7px] top-0 bottom-0 w-px" style={{ background: 'var(--cs-border)' }} />
-            {complaint.timeline.map((event, idx) => {
+            {timeline.map((event, index) => {
               const Icon = STATUS_ICONS[event.status] || AlertCircle;
               const color = STATUS_COLORS[event.status] || '#6B7280';
               const dot = TIMELINE_DOT[event.status] || '#D1D5DB';
+
               return (
-                <div key={idx} className="relative mb-4 last:mb-0">
-                  <div className="absolute -left-5 top-1 w-3.5 h-3.5 rounded-full border-2"
-                    style={{ background: '#fff', borderColor: dot }} />
+                <div key={`${event.time}-${index}`} className="relative mb-4 last:mb-0">
+                  <div
+                    className="absolute -left-5 top-1 w-3.5 h-3.5 rounded-full border-2"
+                    style={{ background: '#fff', borderColor: dot }}
+                  />
                   <div className="card-sm ml-2">
                     <div className="flex items-center gap-1.5 mb-0.5">
                       <Icon className="w-3.5 h-3.5" style={{ color }} />
@@ -136,9 +213,8 @@ function ComplaintDetailPanel({ complaint, onClose }) {
           </div>
         </div>
 
-        {/* Review CTA */}
-        {complaint.status === 'Resolved' && (
-          <button onClick={() => navigate(`/review/${complaint.id}`)} className="btn-primary">
+        {complaint.status === 'Resolved' && canReview && (
+          <button type="button" onClick={() => navigate(`/review/${complaint.id}`)} className="btn-primary">
             <Star className="w-4 h-4" /> Leave a Review
           </button>
         )}
@@ -147,109 +223,194 @@ function ComplaintDetailPanel({ complaint, onClose }) {
   );
 }
 
-export default function ComplaintStatus({ onSelectComplaint } = {}) {
-  const { complaints, setSidebarOpen } = useApp();
+export default function ComplaintStatus() {
+  const {
+    authUser,
+    complaints,
+    complaintsLoaded,
+    fetchComplaints,
+    setSidebarOpen,
+    token,
+  } = useApp();
   const navigate = useNavigate();
+  const location = useLocation();
+
   const [activeFilter, setActiveFilter] = useState('All');
   const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
-  const isMobileView = typeof setSidebarOpen !== 'undefined';
+  const shouldFetchCitizenComplaints = Boolean(token && authUser?.role === 'citizen');
 
-  const filtered = activeFilter === 'All'
-    ? complaints
-    : complaints.filter(c => c.status === activeFilter);
+  const loadComplaintList = async () => {
+    setLoading(true);
+    setLoadError('');
+
+    try {
+      await fetchComplaints();
+    } catch (error) {
+      setLoadError(error.message || 'Unable to load complaints.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!shouldFetchCitizenComplaints) return;
+
+    if (!complaintsLoaded) {
+      loadComplaintList();
+    }
+  }, [complaintsLoaded, shouldFetchCitizenComplaints]);
+
+  useEffect(() => {
+    if (!location.state?.complaintId || window.innerWidth < 768) return;
+
+    const matchedComplaint = complaints.find((complaint) => complaint.id === location.state.complaintId);
+    if (matchedComplaint) {
+      setSelectedComplaint(matchedComplaint);
+    }
+  }, [complaints, location.state]);
+
+  const filteredComplaints =
+    activeFilter === 'All'
+      ? complaints
+      : complaints.filter((complaint) => complaint.status === activeFilter);
+
+  const handleReportIssue = () => {
+    navigate(window.innerWidth >= 768 ? '/dashboard' : '/camera');
+  };
 
   const handleCardClick = (complaint) => {
-    // Check if we're in desktop layout (no setSidebarOpen from mobile context won't matter here)
-    // We use window width to decide: if desktop, show panel; otherwise navigate
     if (window.innerWidth >= 768) {
       setSelectedComplaint(complaint);
-    } else {
-      navigate(`/complaint/${complaint.id}`);
+      return;
     }
+
+    navigate(`/complaint/${complaint.id}`);
   };
 
   return (
     <div className="flex h-full" style={{ background: 'var(--cs-bg)' }}>
       <div className="flex flex-col flex-1 min-w-0 h-full">
-        {/* Header */}
         <div className="page-header">
-          <button onClick={() => setSidebarOpen?.(true)}
-            className="btn-ghost w-9 h-9 rounded-xl p-0 justify-center">
+          <button
+            type="button"
+            onClick={() => setSidebarOpen?.(true)}
+            className="btn-ghost w-9 h-9 rounded-xl p-0 justify-center"
+          >
             <Menu className="w-4 h-4" />
           </button>
           <span className="page-title">Complaints</span>
-          <button className="btn-ghost w-9 h-9 rounded-xl p-0 justify-center">
+          <button type="button" className="btn-ghost w-9 h-9 rounded-xl p-0 justify-center">
             <Filter className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Stats */}
         <div className="flex gap-3 px-4 pt-4 pb-2 flex-shrink-0">
           {[
-            { label: 'Total',    count: complaints.length, color: 'var(--cs-ink)',   bg: '#FFFFFF' },
-            { label: 'Pending',  count: complaints.filter(c=>c.status==='Pending').length, color:'#B45309', bg:'#FFFBEB' },
-            { label: 'Resolved', count: complaints.filter(c=>c.status==='Resolved').length,color:'#065F46', bg:'#ECFDF5' },
+            { label: 'Total', count: complaints.length, color: 'var(--cs-ink)', bg: '#FFFFFF' },
+            { label: 'Pending', count: complaints.filter((complaint) => complaint.status === 'Pending').length, color: '#B45309', bg: '#FFFBEB' },
+            { label: 'Resolved', count: complaints.filter((complaint) => complaint.status === 'Resolved').length, color: '#065F46', bg: '#ECFDF5' },
           ].map(({ label, count, color, bg }) => (
-            <div key={label} className="flex-1 rounded-xl p-3 text-center border shadow-card"
-              style={{ background: bg, borderColor: 'var(--cs-border)' }}>
+            <div
+              key={label}
+              className="flex-1 rounded-xl p-3 text-center border shadow-card"
+              style={{ background: bg, borderColor: 'var(--cs-border)' }}
+            >
               <p className="text-xl font-bold" style={{ color }}>{count}</p>
               <p className="text-xs mt-0.5" style={{ color: 'var(--cs-muted)' }}>{label}</p>
             </div>
           ))}
         </div>
 
-        {/* Filter chips */}
         <div className="flex gap-2 px-4 py-2 overflow-x-auto flex-shrink-0" style={{ scrollbarWidth: 'none' }}>
-          {STATUS_FILTERS.map(f => (
+          {STATUS_FILTERS.map((filter) => (
             <button
-              key={f}
-              onClick={() => { setActiveFilter(f); setSelectedComplaint(null); }}
+              key={filter}
+              type="button"
+              onClick={() => {
+                setActiveFilter(filter);
+                setSelectedComplaint(null);
+              }}
               className="flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold border transition-all"
-              style={activeFilter === f
-                ? { background: 'var(--cs-accent)', color: '#fff', borderColor: 'var(--cs-accent)' }
-                : { background: '#fff', color: 'var(--cs-muted)', borderColor: 'var(--cs-border)' }}
+              style={
+                activeFilter === filter
+                  ? { background: 'var(--cs-accent)', color: '#fff', borderColor: 'var(--cs-accent)' }
+                  : { background: '#fff', color: 'var(--cs-muted)', borderColor: 'var(--cs-border)' }
+              }
             >
-              {f}
+              {filter}
             </button>
           ))}
         </div>
 
-        {/* List */}
         <div className="scrollable px-4 pb-4 flex flex-col gap-2.5 pt-1">
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <LoaderPlaceholder />
+              <p className="text-sm" style={{ color: 'var(--cs-muted)' }}>Loading complaints...</p>
+            </div>
+          ) : loadError ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <div className="w-14 h-14 rounded-full border flex items-center justify-center"
-                style={{ background: 'var(--cs-subtle)', borderColor: 'var(--cs-border)' }}>
+              <AlertCircle className="w-8 h-8" style={{ color: '#DC2626' }} />
+              <div className="text-center">
+                <p className="font-medium text-sm" style={{ color: 'var(--cs-ink)' }}>Could not load complaints</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--cs-muted)' }}>{loadError}</p>
+              </div>
+              <button type="button" onClick={loadComplaintList} className="btn-secondary w-auto px-6">
+                Retry
+              </button>
+            </div>
+          ) : filteredComplaints.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <div
+                className="w-14 h-14 rounded-full border flex items-center justify-center"
+                style={{ background: 'var(--cs-subtle)', borderColor: 'var(--cs-border)' }}
+              >
                 <ClipboardList className="w-7 h-7" style={{ color: 'rgba(75,85,99,0.4)' }} />
               </div>
               <div className="text-center">
                 <p className="font-medium text-sm" style={{ color: 'var(--cs-ink)' }}>No complaints found</p>
                 <p className="text-xs mt-1" style={{ color: 'var(--cs-muted)' }}>Try a different filter</p>
               </div>
-              <button onClick={() => navigate('/camera')} className="btn-primary w-auto px-6 py-3">
+              <button type="button" onClick={handleReportIssue} className="btn-primary w-auto px-6 py-3">
                 <Plus className="w-4 h-4" /> Report an Issue
               </button>
             </div>
           ) : (
-            filtered.map(c => (
+            filteredComplaints.map((complaint) => (
               <ComplaintCard
-                key={c.id}
-                complaint={c}
+                key={complaint.id}
+                complaint={complaint}
                 onClick={handleCardClick}
+                footer={
+                  complaint.syncStatus === 'queued' ? (
+                    <span
+                      className="text-[11px] px-2 py-1 rounded-full border font-medium w-fit"
+                      style={{ background: '#FFFBEB', borderColor: '#FDE68A', color: '#92400E' }}
+                    >
+                      Saved locally - will retry when online
+                    </span>
+                  ) : null
+                }
               />
             ))
           )}
         </div>
       </div>
 
-      {/* Desktop detail panel */}
       {selectedComplaint && (
         <ComplaintDetailPanel
           complaint={selectedComplaint}
           onClose={() => setSelectedComplaint(null)}
+          canReview={Boolean(token)}
         />
       )}
     </div>
   );
+}
+
+function LoaderPlaceholder() {
+  return <Clock className="w-8 h-8 animate-pulse" style={{ color: 'var(--cs-accent)' }} />;
 }

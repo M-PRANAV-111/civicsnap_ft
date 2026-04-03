@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
+import InstallCornerButton from '../components/InstallCornerButton.jsx';
 import {
   LayoutDashboard, ClipboardList, BarChart2,
   Shield, LogOut, User, FileText, PlusCircle
@@ -158,6 +159,7 @@ export default function DesktopLayout({ page }) {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <InstallCornerButton label="Install App" />
             {isCitizenLoggedIn && (
               <button
                 onClick={triggerFormHighlight}

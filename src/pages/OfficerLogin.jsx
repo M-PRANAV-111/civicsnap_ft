@@ -4,22 +4,39 @@ import { useApp } from '../context/AppContext.jsx';
 import { Eye, EyeOff, Loader2, ArrowRight, AlertCircle } from 'lucide-react';
 
 export default function OfficerLogin() {
-  const { setIsOfficerLoggedIn } = useApp();
+  const { loginDesktop } = useApp();
   const navigate = useNavigate();
-  const [credentials, setCredentials] = useState({ username: '', password: '' });
+  const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError(''); setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    if (credentials.username === 'officer' && credentials.password === 'officer123') {
-      setIsOfficerLoggedIn(true);
+    setError('');
+
+    if (!credentials.email.trim()) {
+      setError('Enter your officer email address.');
+      return;
+    }
+
+    if (!credentials.password) {
+      setError('Enter your password.');
+      return;
+    }
+
+    setLoading(true);
+
+    const result = await loginDesktop({
+      username: credentials.email,
+      password: credentials.password,
+      role: 'officer',
+    });
+
+    if (result.success) {
       navigate('/officer/dashboard');
     } else {
-      setError('Invalid credentials. Try: officer / officer123');
+      setError(result.message || 'Invalid officer credentials.');
     }
     setLoading(false);
   };
@@ -42,9 +59,9 @@ export default function OfficerLogin() {
 
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
           <div>
-            <label className="label" htmlFor="officer-username">Username</label>
-            <input id="officer-username" type="text" className="input-field" placeholder="Enter officer ID"
-              value={credentials.username} onChange={(e) => setCredentials({ ...credentials, username: e.target.value })} required />
+            <label className="label" htmlFor="officer-email">Email</label>
+            <input id="officer-email" type="email" className="input-field" placeholder="Enter officer email"
+              value={credentials.email} onChange={(e) => setCredentials({ ...credentials, email: e.target.value })} required />
           </div>
 
           <div>
@@ -73,8 +90,10 @@ export default function OfficerLogin() {
         </form>
 
         <div className="mt-6 p-4 bg-cs-subtle rounded-xl border border-cs-border">
-          <p className="text-xs font-semibold text-cs-muted uppercase tracking-wide mb-2">Demo credentials</p>
-          <code className="text-cs-ink text-xs font-mono">officer / officer123</code>
+          <p className="text-xs font-semibold text-cs-muted uppercase tracking-wide mb-2">Backend login</p>
+          <p className="text-cs-ink text-xs">
+            Use a seeded officer email/password from the backend. Successful sign-ins store the JWT in <code>civicsnap_token</code>.
+          </p>
         </div>
       </div>
     </div>

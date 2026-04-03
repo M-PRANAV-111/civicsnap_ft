@@ -1,89 +1,133 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AlertCircle, ArrowRight, Eye, EyeOff, Loader2, Shield, User, UserCheck } from 'lucide-react';
 import { useApp } from '../context/AppContext.jsx';
-import { Eye, EyeOff, Loader2, ArrowRight, AlertCircle, User, Shield, UserCheck } from 'lucide-react';
+import InstallCornerButton from '../components/InstallCornerButton.jsx';
 
 const ROLES = [
   {
     key: 'citizen',
     label: 'Citizen',
     icon: User,
-    heading: 'Welcome back',
-    subtitle: 'Sign in to track & report civic issues',
-    placeholder: 'Enter citizen ID',
-    demo: { u: 'citizen', p: 'citizen123' },
+    heading: 'Citizen access',
+    subtitle: 'Sign in or create a citizen account with your mobile number or email.',
   },
   {
     key: 'officer',
     label: 'Officer',
     icon: UserCheck,
     heading: 'Officer portal',
-    subtitle: 'Sign in to manage assigned complaints',
-    placeholder: 'Enter officer ID',
-    demo: { u: 'officer', p: 'officer123' },
+    subtitle: 'Sign in to manage assigned complaints.',
   },
   {
     key: 'admin',
     label: 'Admin',
     icon: Shield,
     heading: 'Admin console',
-    subtitle: 'Sign in with administrator credentials',
-    placeholder: 'Enter admin ID',
-    demo: { u: 'admin', p: 'admin123' },
+    subtitle: 'Sign in with administrator credentials.',
   },
 ];
 
 export default function DesktopLogin() {
-  const { loginDesktop } = useApp();
+  const { loginDesktop, registerCitizenAccount } = useApp();
   const navigate = useNavigate();
 
   const [activeRole, setActiveRole] = useState('citizen');
-  const [usernameVal, setUsernameVal] = useState('');
-  const [passwordVal, setPasswordVal] = useState('');
+  const [citizenMode, setCitizenMode] = useState('login');
+  const [form, setForm] = useState({
+    name: '',
+    identifier: '',
+    password: '',
+    confirmPassword: '',
+  });
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const roleConfig = ROLES.find(r => r.key === activeRole);
+  const roleConfig = ROLES.find((role) => role.key === activeRole);
+  const isCitizen = activeRole === 'citizen';
+  const isCreateCitizen = isCitizen && citizenMode === 'create';
 
-  const switchRole = (key) => {
-    setActiveRole(key);
-    setUsernameVal('');
-    setPasswordVal('');
+  useEffect(() => {
+    setForm({ name: '', identifier: '', password: '', confirmPassword: '' });
     setError('');
     setShowPwd(false);
-  };
+  }, [activeRole, citizenMode]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const username = usernameVal.trim();
-    const password = passwordVal;
-    if (!username || !password) return;
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const identifier = form.identifier.trim();
+    const password = form.password;
+
+    if (isCreateCitizen && !form.name.trim()) {
+      setError('Please enter your full name.');
+      return;
+    }
+
+    if (!identifier) {
+      setError(isCitizen ? 'Enter your mobile number or email address.' : 'Enter your email address.');
+      return;
+    }
+
+    if (!password) {
+      setError('Enter your password.');
+      return;
+    }
+
+    if (isCreateCitizen && password !== form.confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
     setError('');
     setLoading(true);
-    await new Promise(r => setTimeout(r, 700));
-    const result = loginDesktop({ username, password });
-    setLoading(false);
-    if (result.success) {
-      navigate('/dashboard');
-    } else {
-      setError(`Invalid credentials. Try: ${roleConfig.demo.u} / ${roleConfig.demo.p}`);
+
+    try {
+      if (isCreateCitizen) {
+        const result = await registerCitizenAccount({
+          name: form.name.trim(),
+          identifier,
+          password,
+        });
+
+        if (!result.success) {
+          setError(result.message || 'Unable to create your account.');
+          return;
+        }
+
+        navigate('/dashboard');
+        return;
+      }
+
+      const result = await loginDesktop({
+        username: identifier,
+        password,
+        role: activeRole,
+      });
+
+      if (result.success) {
+        navigate('/dashboard');
+      } else {
+        setError(result.message || 'Unable to sign in.');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
-  const fillDemo = () => {
-    setUsernameVal(roleConfig.demo.u);
-    setPasswordVal(roleConfig.demo.p);
-    setError('');
-  };
-
-  const isReady = usernameVal.trim().length > 0 && passwordVal.length > 0 && !loading;
+  const isReady =
+    !loading &&
+    form.identifier.trim().length > 0 &&
+    form.password.length > 0 &&
+    (!isCreateCitizen || (form.name.trim().length > 0 && form.confirmPassword.length > 0));
 
   return (
-    <div className="h-full w-full flex" style={{ background: 'var(--cs-bg)' }}>
-      {/* Left panel — branding */}
-      <div className="hidden md:flex flex-col justify-between w-[42%] p-12"
-        style={{ background: 'var(--cs-accent)' }}>
+    <div className="relative h-full w-full flex" style={{ background: 'var(--cs-bg)' }}>
+      <div className="absolute top-5 right-5 z-10 hidden md:block">
+        <InstallCornerButton label="Install App" />
+      </div>
+
+      <div className="hidden md:flex flex-col w-[42%] p-12" style={{ background: 'var(--cs-accent)' }}>
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.2)' }}>
             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -94,36 +138,24 @@ export default function DesktopLogin() {
           <span className="text-white font-semibold text-lg tracking-tight">CivicSnap</span>
         </div>
 
-        <div>
-          <h1 className="text-white text-4xl font-bold leading-snug mb-4">
-            Governance,<br />made simple.
-          </h1>
-          <p className="text-blue-200 text-base leading-relaxed max-w-xs">
-            A unified platform for citizens to report civic issues and for officers to resolve them — fast.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-3 gap-6">
-          {[
-            { value: '12,400+', label: 'Issues reported' },
-            { value: '73%',     label: 'Resolution rate' },
-            { value: '6 dists', label: 'Coverage area' },
-          ].map(({ value, label }) => (
-            <div key={label}>
-              <p className="text-white text-xl font-bold">{value}</p>
-              <p className="text-blue-300 text-xs mt-0.5">{label}</p>
-            </div>
-          ))}
+        <div className="flex-1 flex items-center">
+          <div>
+            <h1 className="text-white text-4xl font-bold leading-snug mb-4">
+              Governance,
+              <br />
+              made simple.
+            </h1>
+            <p className="text-blue-200 text-base leading-relaxed max-w-xs">
+              A unified platform for citizens to report civic issues and for officers to resolve them fast.
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Right panel — form */}
       <div className="flex-1 flex items-center justify-center px-8">
         <div className="w-full max-w-sm">
-          {/* Mobile logo */}
           <div className="flex items-center gap-2 mb-8 md:hidden">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: 'var(--cs-accent)' }}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--cs-accent)' }}>
               <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
               </svg>
@@ -131,19 +163,18 @@ export default function DesktopLogin() {
             <span className="font-semibold text-lg" style={{ color: 'var(--cs-ink)' }}>CivicSnap</span>
           </div>
 
-          {/* Role tabs */}
-          <div className="flex rounded-xl p-1 mb-8 gap-1"
-            style={{ background: 'var(--cs-subtle)', border: '1px solid var(--cs-border)' }}>
+          <div className="flex rounded-xl p-1 mb-8 gap-1" style={{ background: 'var(--cs-subtle)', border: '1px solid var(--cs-border)' }}>
             {ROLES.map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
                 type="button"
-                id={`role-tab-${key}`}
-                onClick={() => switchRole(key)}
+                onClick={() => setActiveRole(key)}
                 className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200"
-                style={activeRole === key
-                  ? { background: 'var(--cs-accent)', color: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.12)' }
-                  : { background: 'transparent', color: 'var(--cs-muted)' }}
+                style={
+                  activeRole === key
+                    ? { background: 'var(--cs-accent)', color: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.12)' }
+                    : { background: 'transparent', color: 'var(--cs-muted)' }
+                }
               >
                 <Icon className="w-3.5 h-3.5" />
                 {label}
@@ -151,22 +182,61 @@ export default function DesktopLogin() {
             ))}
           </div>
 
+          {isCitizen && (
+            <div className="flex rounded-xl p-1 mb-6 gap-1" style={{ background: '#FFFFFF', border: '1px solid var(--cs-border)' }}>
+              {[
+                { key: 'login', label: 'Sign In' },
+                { key: 'create', label: 'Create Account' },
+              ].map((mode) => (
+                <button
+                  key={mode.key}
+                  type="button"
+                  onClick={() => setCitizenMode(mode.key)}
+                  className="flex-1 py-2 rounded-lg text-xs font-semibold transition-all duration-200"
+                  style={
+                    citizenMode === mode.key
+                      ? { background: 'var(--cs-accent)', color: '#fff' }
+                      : { background: 'transparent', color: 'var(--cs-muted)' }
+                  }
+                >
+                  {mode.label}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="mb-6">
             <h2 className="text-2xl font-bold" style={{ color: 'var(--cs-ink)' }}>{roleConfig.heading}</h2>
             <p className="text-sm mt-1" style={{ color: 'var(--cs-muted)' }}>{roleConfig.subtitle}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4" autoComplete="off">
+            {isCreateCitizen && (
+              <div>
+                <label className="label" htmlFor="citizen-name">Full Name</label>
+                <input
+                  id="citizen-name"
+                  type="text"
+                  className="input-field"
+                  placeholder="Enter your full name"
+                  value={form.name}
+                  onChange={(event) => setForm({ ...form, name: event.target.value })}
+                />
+              </div>
+            )}
+
             <div>
-              <label className="label" htmlFor="login-username">Username</label>
+              <label className="label" htmlFor="login-identifier">
+                {isCitizen ? 'Mobile Number or Email' : 'Email'}
+              </label>
               <input
-                id="login-username"
+                id="login-identifier"
                 type="text"
                 className="input-field"
-                placeholder={roleConfig.placeholder}
-                value={usernameVal}
-                onChange={e => setUsernameVal(e.target.value)}
-                autoComplete="username"
+                placeholder={isCitizen ? '9876543210 or name@example.com' : 'Enter your email'}
+                value={form.identifier}
+                onChange={(event) => setForm({ ...form, identifier: event.target.value })}
+                autoComplete={isCitizen ? 'username' : 'email'}
               />
             </div>
 
@@ -179,15 +249,24 @@ export default function DesktopLogin() {
                   className="input-field"
                   style={{ paddingRight: '2.75rem' }}
                   placeholder="Enter your password"
-                  value={passwordVal}
-                  onChange={e => setPasswordVal(e.target.value)}
+                  value={form.password}
+                  onChange={(event) => setForm({ ...form, password: event.target.value })}
                   autoComplete="current-password"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPwd(v => !v)}
-                  style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)',
-                    background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cs-muted)', padding: 0 }}
+                  onClick={() => setShowPwd((value) => !value)}
+                  style={{
+                    position: 'absolute',
+                    right: '0.75rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--cs-muted)',
+                    padding: 0,
+                  }}
                   tabIndex={-1}
                 >
                   {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -195,9 +274,22 @@ export default function DesktopLogin() {
               </div>
             </div>
 
+            {isCreateCitizen && (
+              <div>
+                <label className="label" htmlFor="citizen-confirm-password">Confirm Password</label>
+                <input
+                  id="citizen-confirm-password"
+                  type={showPwd ? 'text' : 'password'}
+                  className="input-field"
+                  placeholder="Re-enter your password"
+                  value={form.confirmPassword}
+                  onChange={(event) => setForm({ ...form, confirmPassword: event.target.value })}
+                />
+              </div>
+            )}
+
             {error && (
-              <div className="flex items-start gap-2.5 rounded-xl px-3 py-3"
-                style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
+              <div className="flex items-start gap-2.5 rounded-xl px-3 py-3" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
                 <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
                 <p className="text-red-700 text-sm">{error}</p>
               </div>
@@ -208,34 +300,38 @@ export default function DesktopLogin() {
               disabled={!isReady}
               className="btn-primary mt-1"
               style={{ opacity: isReady ? 1 : 0.5, cursor: isReady ? 'pointer' : 'not-allowed' }}
-              id="login-submit"
             >
-              {loading
-                ? <><Loader2 className="w-4 h-4 animate-spin" /> Signing in…</>
-                : <><span>Sign in as {roleConfig.label}</span> <ArrowRight className="w-4 h-4" /></>}
+              {loading ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> {isCreateCitizen ? 'Creating account...' : 'Signing in...'}</>
+              ) : (
+                <>
+                  <span>{isCreateCitizen ? 'Create Citizen Account' : `Sign in as ${roleConfig.label}`}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
           </form>
 
-          {/* Demo hint — click to auto-fill */}
-          <div className="mt-6 p-4 rounded-xl border"
-            style={{ background: 'var(--cs-subtle)', borderColor: 'var(--cs-border)' }}>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--cs-muted)' }}>
-                Demo credentials
-              </p>
-              <button
-                type="button"
-                onClick={fillDemo}
-                id="fill-demo-btn"
-                className="text-xs font-medium px-2.5 py-1 rounded-lg transition-all duration-150"
-                style={{ background: 'var(--cs-accent)', color: '#fff', border: 'none', cursor: 'pointer' }}
-              >
-                Auto-fill
-              </button>
-            </div>
-            <code className="text-xs font-mono" style={{ color: 'var(--cs-ink)' }}>
-              {roleConfig.demo.u} / {roleConfig.demo.p}
-            </code>
+          <div className="mt-6 p-4 rounded-xl border" style={{ background: 'var(--cs-subtle)', borderColor: 'var(--cs-border)' }}>
+            {isCitizen ? (
+              <>
+                <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--cs-muted)' }}>
+                  Citizen account rules
+                </p>
+                <p className="text-xs" style={{ color: 'var(--cs-ink)' }}>
+                  Use either a 10-digit mobile number or a valid email address. Citizen accounts are now stored in the backend so your login works across devices.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--cs-muted)' }}>
+                  Backend login
+                </p>
+                <p className="text-xs" style={{ color: 'var(--cs-ink)' }}>
+                  Use the seeded backend email/password for this role. Successful logins store the returned JWT and unlock protected dashboard requests.
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>
