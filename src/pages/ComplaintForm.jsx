@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '../context/AppContext.jsx';
 import CategoryCard, { CATEGORIES } from '../components/CategoryCard.jsx';
 import { LocationSearch, buildMapsLink, reverseGeocodeLocation } from '../components/LocationSearch.jsx';
@@ -38,16 +39,16 @@ function isSupportedAttachment(file) {
     ACCEPTED_ATTACHMENT_EXTENSIONS.some((extension) => normalizedName.endsWith(extension));
 }
 
-function formatLocationError(error) {
+function formatLocationError(error, t) {
   switch (error?.code) {
     case 1:
-      return 'Location permission is required to use GPS.';
+      return t('complaintForm.errors.locationPermission');
     case 2:
-      return 'We could not detect your current location.';
+      return t('complaintForm.errors.locationNotFound');
     case 3:
-      return 'Location lookup timed out. Please try again.';
+      return t('complaintForm.errors.locationTimeout');
     default:
-      return 'Unable to fetch your location right now.';
+      return t('complaintForm.errors.locationUnavailable');
   }
 }
 
@@ -92,6 +93,8 @@ function revokeAttachmentPreview(attachment) {
 }
 
 function SuccessState({ desktop, savedLocally, complaintId, onViewComplaints, onSubmitAnother }) {
+  const { t } = useTranslation();
+
   return (
     <div className={`${desktop ? 'px-5 py-10' : 'screen items-center justify-center px-6'} flex flex-col gap-5`} style={{ background: desktop ? 'transparent' : 'var(--cs-bg)' }}>
       <div
@@ -102,16 +105,16 @@ function SuccessState({ desktop, savedLocally, complaintId, onViewComplaints, on
       </div>
       <div className="text-center">
         <h2 className="text-xl font-bold" style={{ color: 'var(--cs-ink)' }}>
-          {savedLocally ? 'Saved Locally' : 'Complaint Submitted'}
+          {savedLocally ? t('complaintForm.savedLocallyTitle') : t('complaintForm.successTitle')}
         </h2>
         <p className="text-sm mt-1.5" style={{ color: 'var(--cs-muted)' }}>
           {savedLocally
-            ? 'Your complaint is stored on this device and will retry automatically when the internet is back.'
-            : 'Your complaint has been registered and is ready for tracking.'}
+            ? t('complaintForm.savedLocallyMessage')
+            : t('complaintForm.successMessage')}
         </p>
         {complaintId && (
           <p className="text-sm font-semibold mt-2" style={{ color: 'var(--cs-ink)' }}>
-            ID: {complaintId}
+            {t('complaintForm.idLabel', { id: complaintId })}
           </p>
         )}
       </div>
@@ -119,10 +122,10 @@ function SuccessState({ desktop, savedLocally, complaintId, onViewComplaints, on
       {desktop ? (
         <div className="flex flex-col gap-2 w-full">
           <button type="button" onClick={onViewComplaints} className="btn-primary">
-            View My Complaints
+            {t('complaintForm.viewMyComplaints')}
           </button>
           <button type="button" onClick={onSubmitAnother} className="btn-secondary">
-            Submit Another Complaint
+            {t('complaintForm.submitAnother')}
           </button>
         </div>
       ) : savedLocally ? (
@@ -130,7 +133,7 @@ function SuccessState({ desktop, savedLocally, complaintId, onViewComplaints, on
           className="text-xs px-3 py-1 rounded-full border font-medium self-center"
           style={{ background: '#FFFBEB', borderColor: '#FDE68A', color: '#92400E' }}
         >
-          Saved locally - will retry
+          {t('complaintForm.savedLocallyRetry')}
         </span>
       ) : null}
     </div>
@@ -138,6 +141,7 @@ function SuccessState({ desktop, savedLocally, complaintId, onViewComplaints, on
 }
 
 export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
+  const { t } = useTranslation();
   const isDesktopForm = mode === 'desktop';
   const {
     authUser,
@@ -216,7 +220,7 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
   const handleUseMyLocation = ({ silentFailure = false } = {}) => {
     if (!navigator.geolocation) {
       if (!silentFailure) {
-        setLocError('Location access is not supported on this browser.');
+        setLocError(t('complaintForm.errors.locationNotSupported'));
       }
       return;
     }
@@ -238,7 +242,7 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
       (error) => {
         setLocLoading(false);
         if (!silentFailure) {
-          setLocError(formatLocationError(error));
+          setLocError(formatLocationError(error, t));
         }
       },
       { timeout: 8000, enableHighAccuracy: true, maximumAge: 0 },
@@ -273,7 +277,7 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
 
     const invalidFile = selectedFiles.find((file) => !isSupportedAttachment(file));
     if (invalidFile) {
-      setAttachmentError('Only JPG, JPEG, PNG, and PDF files are supported.');
+      setAttachmentError(t('complaintForm.errors.invalidAttachment'));
     } else {
       setAttachmentError('');
     }
@@ -308,7 +312,7 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
 
     const departmentId = getDepartmentId(category);
     if (!departmentId) {
-      setSubmissionError('We could not map that category to a backend department. Please refresh and try again.');
+      setSubmissionError(t('complaintForm.errors.departmentMapping'));
       return;
     }
 
@@ -316,7 +320,7 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
     setSavedLocally(false);
     setSubmitting(true);
     setUploadProgress(10);
-    setSubmissionMessage('Preparing complaint...');
+    setSubmissionMessage(t('complaintForm.progress.preparing'));
 
     const mapsLink = buildMapsLink(location.lat, location.lng);
     const citizenType = authUser?.role === 'citizen' || mobileCitizenUser?.role === 'citizen' ? 'registered' : 'guest';
@@ -324,7 +328,7 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
     try {
       const imageFile = isDesktopForm ? null : await imageSourceToFile(capturedImage);
       setUploadProgress(20);
-      setSubmissionMessage('Uploading complaint...');
+      setSubmissionMessage(t('complaintForm.progress.uploading'));
 
       const createdComplaint = await createComplaint(
         {
@@ -343,13 +347,13 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
         {
           onProgress: (progress) => {
             setUploadProgress(Math.max(20, progress));
-            setSubmissionMessage(`Uploading complaint... ${progress}%`);
+            setSubmissionMessage(t('complaintForm.progress.uploadingPercent', { progress }));
           },
         },
       );
 
       setUploadProgress(100);
-      setSubmissionMessage('Complaint submitted successfully.');
+      setSubmissionMessage(t('complaintForm.progress.success'));
       setSubmittedComplaintId(createdComplaint?.id || createdComplaint?._id || '');
       setSubmitted(true);
       setSubmitting(false);
@@ -395,7 +399,7 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
         setSubmitted(true);
         setSubmitting(false);
         setUploadProgress(100);
-        setSubmissionMessage('Saved locally - will retry when online.');
+        setSubmissionMessage(t('complaintForm.progress.savedLocally'));
         setSubmittedComplaintId(queuedComplaint.localId);
 
         if (isDesktopForm) {
@@ -417,7 +421,7 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
         return;
       }
 
-      setSubmissionError(error.message || 'Unable to submit complaint right now.');
+      setSubmissionError(error.message || t('complaintForm.errors.submitFailed'));
       setSubmissionMessage('');
       setUploadProgress(0);
       setSubmitting(false);
@@ -434,17 +438,17 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
           <Camera className="w-8 h-8" style={{ color: 'rgba(75,85,99,0.3)' }} />
         </div>
         <div className="text-center">
-          <p className="font-semibold" style={{ color: 'var(--cs-ink)' }}>No photo selected</p>
+          <p className="font-semibold" style={{ color: 'var(--cs-ink)' }}>{t('complaintForm.noPhotoTitle')}</p>
           <p className="text-sm mt-1" style={{ color: 'var(--cs-muted)' }}>
-            Take a photo or upload from your gallery.
+            {t('complaintForm.noPhotoSubtitle')}
           </p>
         </div>
         <div className="flex flex-col gap-2.5 w-full">
           <button type="button" onClick={() => navigate('/camera')} className="btn-primary">
-            <Camera className="w-4 h-4" /> Open Camera
+            <Camera className="w-4 h-4" /> {t('complaintForm.openCamera')}
           </button>
           <button type="button" onClick={() => galleryInputRef.current?.click()} className="btn-secondary">
-            Upload from Gallery
+            {t('complaintForm.uploadFromGallery')}
           </button>
         </div>
         <input
@@ -479,14 +483,14 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
     <div className={formPaddingClass}>
       {!isDesktopForm && (
         <div className="relative rounded-2xl overflow-hidden border shadow-sm" style={{ borderColor: 'var(--cs-border)' }}>
-          <img src={capturedImage} alt="Captured" className="w-full h-52 object-cover" />
+          <img src={capturedImage} alt={t('complaintForm.capturedPhotoAlt')} className="w-full h-52 object-cover" />
           <button
             type="button"
             onClick={() => galleryInputRef.current?.click()}
             className="absolute top-2.5 right-2.5 flex items-center gap-1.5 backdrop-blur-sm text-white rounded-full px-3 py-1.5 text-xs font-medium"
             style={{ background: 'rgba(0,0,0,0.55)' }}
           >
-            <Camera className="w-3.5 h-3.5" /> Change Photo
+            <Camera className="w-3.5 h-3.5" /> {t('complaintForm.changePhoto')}
           </button>
           <input
             ref={galleryInputRef}
@@ -503,10 +507,10 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="label mb-0">
-              Attachments <span style={{ color: 'var(--cs-muted)', textTransform: 'lowercase', letterSpacing: 0 }}>(optional)</span>
+              {t('complaintForm.attachments')} <span style={{ color: 'var(--cs-muted)', textTransform: 'lowercase', letterSpacing: 0 }}>({t('complaintForm.optional')})</span>
             </label>
             <button type="button" onClick={() => attachmentInputRef.current?.click()} className="btn-secondary w-auto px-4 py-2 text-sm">
-              <Upload className="w-4 h-4" /> Add files
+              <Upload className="w-4 h-4" /> {t('complaintForm.addFiles')}
             </button>
           </div>
 
@@ -515,10 +519,10 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
             style={{ borderColor: 'var(--cs-border)', background: 'var(--cs-subtle)' }}
           >
             <p className="text-sm font-medium" style={{ color: 'var(--cs-ink)' }}>
-              Upload images or PDFs
+              {t('complaintForm.uploadImagesOrPdfs')}
             </p>
             <p className="text-xs mt-1" style={{ color: 'var(--cs-muted)' }}>
-              Supported: JPG, JPEG, PNG, PDF.
+              {t('complaintForm.supportedFormats')}
             </p>
             <input
               ref={attachmentInputRef}
@@ -572,7 +576,7 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
                     onClick={() => handleRemoveAttachment(attachment.id)}
                     className="w-9 h-9 rounded-xl border flex items-center justify-center"
                     style={{ background: '#FFFFFF', borderColor: 'var(--cs-border)', color: 'var(--cs-muted)' }}
-                    aria-label={`Remove ${attachment.file.name}`}
+                    aria-label={t('complaintForm.removeAttachment', { fileName: attachment.file.name })}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -585,13 +589,13 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
 
       <div>
         <label className="label" htmlFor={isDesktopForm ? 'desktop-desc' : 'desc'}>
-          Description <span style={{ color: 'var(--cs-muted)', textTransform: 'lowercase', letterSpacing: 0 }}>(optional)</span>
+          {t('complaintForm.description')} <span style={{ color: 'var(--cs-muted)', textTransform: 'lowercase', letterSpacing: 0 }}>({t('complaintForm.optional')})</span>
         </label>
         <textarea
           id={isDesktopForm ? 'desktop-desc' : 'desc'}
           className="input-field resize-none"
           rows={isDesktopForm ? 4 : 3}
-          placeholder="Describe the issue briefly..."
+          placeholder={t('complaintForm.descriptionPlaceholder')}
           value={description}
           maxLength={300}
           onChange={(event) => setDescription(event.target.value)}
@@ -603,7 +607,7 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
 
       <div>
         <label className="label">
-          Category <span style={{ color: '#EF4444' }}>*</span>
+          {t('complaintForm.category')} <span style={{ color: '#EF4444' }}>*</span>
         </label>
         <div className={`grid ${isDesktopForm ? 'grid-cols-4 xl:grid-cols-5' : 'grid-cols-3'} gap-2`}>
           {CATEGORIES.map((item) => (
@@ -615,7 +619,7 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="label mb-0">
-            Location <span style={{ color: '#EF4444' }}>*</span>
+            {t('complaintForm.location')} <span style={{ color: '#EF4444' }}>*</span>
           </label>
           {locSource && (
             <span
@@ -626,7 +630,7 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
                 color: locSource === 'gps' ? '#065F46' : 'var(--cs-accent)',
               }}
             >
-              {locSource === 'gps' ? 'GPS' : 'Searched'}
+              {locSource === 'gps' ? t('complaintForm.gps') : t('complaintForm.searched')}
             </span>
           )}
         </div>
@@ -650,7 +654,7 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
 
           <div className="flex-1 min-w-0">
             {locLoading && (
-              <p className="text-sm" style={{ color: 'var(--cs-muted)' }}>Getting GPS location...</p>
+              <p className="text-sm" style={{ color: 'var(--cs-muted)' }}>{t('complaintForm.gettingGps')}</p>
             )}
             {location && !locLoading && (
               <>
@@ -668,14 +672,14 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
                     className="text-xs font-medium flex items-center gap-1 mt-1"
                     style={{ color: 'var(--cs-accent)' }}
                   >
-                    Verify on Maps <ExternalLink className="w-3 h-3" />
+                    {t('complaintForm.verifyOnMaps')} <ExternalLink className="w-3 h-3" />
                   </a>
                 )}
               </>
             )}
             {!location && !locLoading && (
               <p className="text-sm" style={{ color: 'var(--cs-muted)' }}>
-                {isDesktopForm ? 'Choose your location with GPS or search below.' : 'No location set yet.'}
+                {isDesktopForm ? t('complaintForm.desktopLocationHint') : t('complaintForm.mobileLocationHint')}
               </p>
             )}
           </div>
@@ -684,7 +688,7 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
         <div className={`mt-3 flex ${isDesktopForm ? 'flex-row flex-wrap items-center' : 'flex-col'} gap-2`}>
           <button type="button" onClick={() => handleUseMyLocation()} className="btn-secondary w-auto px-4 py-2.5 text-sm">
             <Navigation2 className="w-4 h-4" />
-            Use My Location
+            {t('complaintForm.useMyLocation')}
           </button>
           {!isDesktopForm && (
             <button
@@ -694,7 +698,11 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
               id="search-location-btn"
             >
               <Search className="w-4 h-4" />
-              {showSearch ? 'Hide search' : location ? 'Change location' : 'Search your location'}
+              {showSearch
+                ? t('complaintForm.hideSearch')
+                : location
+                ? t('complaintForm.changeLocation')
+                : t('complaintForm.searchLocation')}
             </button>
           )}
         </div>
@@ -717,7 +725,7 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
 
         {!location && !locLoading && !locError && (
           <p className="text-xs mt-2 px-1" style={{ color: '#B45309' }}>
-            Location is required before submitting.
+            {t('complaintForm.locationRequired')}
           </p>
         )}
       </div>
@@ -735,7 +743,7 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
                   className="text-xs font-semibold mt-2"
                   style={{ color: 'var(--cs-accent)', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}
                 >
-                  Retry submission
+                  {t('complaintForm.retrySubmission')}
                 </button>
               </div>
             </div>
@@ -746,7 +754,7 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
           <div className="rounded-xl border px-3 py-3 mb-3" style={{ background: '#FFFFFF', borderColor: 'var(--cs-border)' }}>
             <div className="flex items-center justify-between gap-3 mb-2">
               <span className="text-sm font-medium" style={{ color: 'var(--cs-ink)' }}>
-                {submissionMessage || 'Submitting complaint...'}
+                {submissionMessage || t('complaintForm.progress.submitting')}
               </span>
               <span className="text-xs font-semibold" style={{ color: 'var(--cs-accent)' }}>
                 {uploadProgress}%
@@ -763,12 +771,12 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
 
         {!category && (
           <p className="text-xs text-center mb-2" style={{ color: 'var(--cs-muted)' }}>
-            Select a category to continue
+            {t('complaintForm.selectCategoryFirst')}
           </p>
         )}
         {!location && category && (
           <p className="text-xs text-center mb-2" style={{ color: 'var(--cs-muted)' }}>
-            Set a location to continue
+            {t('complaintForm.setLocationFirst')}
           </p>
         )}
         <button
@@ -780,11 +788,11 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
         >
           {submitting ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" /> Submitting...
+              <Loader2 className="w-4 h-4 animate-spin" /> {t('complaintForm.submitting')}
             </>
           ) : (
             <>
-              <CheckCircle2 className="w-4 h-4" /> Submit Complaint
+              <CheckCircle2 className="w-4 h-4" /> {t('complaintForm.submitComplaint')}
             </>
           )}
         </button>
@@ -807,7 +815,7 @@ export default function ComplaintForm({ mode = 'mobile', embedded = false }) {
         >
           <ArrowLeft className="w-4 h-4" />
         </button>
-        <span className="page-title">Report Issue</span>
+        <span className="page-title">{t('complaintForm.reportIssue')}</span>
         <div className="w-9" />
       </div>
 

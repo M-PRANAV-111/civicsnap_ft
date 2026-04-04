@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader2, MapPin, Search, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import i18n from '../i18n.js';
+import { getLocaleTag } from '../utils/i18nHelpers.js';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 const GOOGLE_SCRIPT_ID = 'civicsnap-google-maps-script';
@@ -129,7 +132,7 @@ async function resolveGooglePlace(prediction) {
 async function searchNominatimPlaces(query) {
   const url =
     `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=6&countrycodes=in&addressdetails=1`;
-  const response = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+  const response = await fetch(url, { headers: { 'Accept-Language': getLocaleTag(i18n) } });
 
   if (!response.ok) {
     throw new Error('Search failed');
@@ -168,7 +171,7 @@ async function reverseGeocodeLocation(lat, lng) {
 
     const response = await fetch(
       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
-      { headers: { 'Accept-Language': 'en' } },
+      { headers: { 'Accept-Language': getLocaleTag(i18n) } },
     );
     const data = await response.json();
     const address = data.address || {};
@@ -194,8 +197,9 @@ export function LocationSearch({
   onPick,
   initialQuery = '',
   autoFocus = false,
-  placeholder = 'Search your area, street, landmark...',
+  placeholder,
 }) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -242,7 +246,7 @@ export function LocationSearch({
             })),
           );
           if (predictions.length === 0) {
-            setError('No results found. Try a more specific name.');
+            setError(t('locationSearch.noResults'));
           }
         } else {
           const fallbackResults = await searchNominatimPlaces(value);
@@ -255,11 +259,11 @@ export function LocationSearch({
             })),
           );
           if (fallbackResults.length === 0) {
-            setError('No results found. Try a more specific name.');
+            setError(t('locationSearch.noResults'));
           }
         }
       } catch {
-        setError('Search failed. Check your internet connection.');
+        setError(t('locationSearch.searchFailed'));
       } finally {
         setSearching(false);
       }
@@ -290,7 +294,7 @@ export function LocationSearch({
       setResults([]);
       setQuery(result.label);
     } catch {
-      setError('Unable to use that location right now.');
+      setError(t('locationSearch.useLocationFailed'));
     } finally {
       setSearching(false);
     }
@@ -306,7 +310,7 @@ export function LocationSearch({
         <input
           ref={inputRef}
           className="input-field pl-9 pr-9"
-          placeholder={placeholder}
+          placeholder={placeholder || t('locationSearch.placeholder')}
           value={query}
           onChange={(event) => handleInput(event.target.value)}
         />
@@ -329,7 +333,7 @@ export function LocationSearch({
       {searching && (
         <div className="flex items-center gap-2 px-1 py-1">
           <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: 'var(--cs-accent)' }} />
-          <span className="text-xs" style={{ color: 'var(--cs-muted)' }}>Searching...</span>
+          <span className="text-xs" style={{ color: 'var(--cs-muted)' }}>{t('locationSearch.searching')}</span>
         </div>
       )}
 
@@ -361,8 +365,8 @@ export function LocationSearch({
 
       <p className="text-xs px-1" style={{ color: 'rgba(75,85,99,0.5)' }}>
         {isGooglePlacesConfigured()
-          ? 'Powered by Google Maps Places API.'
-          : 'Search fallback is active. Add VITE_GOOGLE_MAPS_API_KEY to enable Google Maps Places results.'}
+          ? t('locationSearch.poweredByGoogle')
+          : t('locationSearch.fallbackHint')}
       </p>
     </div>
   );

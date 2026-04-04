@@ -9,24 +9,24 @@ export default defineConfig({
     basicSsl(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icons/*.png'],
+      includeAssets: ['logo.png'],
       manifest: {
         name: 'CivicSnap',
         short_name: 'CivicSnap',
         description: 'Report public issues to government departments',
-        theme_color: '#6366f1',
-        background_color: '#0f0f1a',
+        theme_color: '#2563EB',
+        background_color: '#1E3A8A',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
         scope: '/',
         icons: [
-          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' }
+          { src: '/logo.png', sizes: '192x192', type: 'image/png' },
+          { src: '/logo.png', sizes: '512x512', type: 'image/png' }
         ]
       },
       devOptions: {
-        enabled: true,
+        enabled: false,
         suppressWarnings: true,
       },
       workbox: {

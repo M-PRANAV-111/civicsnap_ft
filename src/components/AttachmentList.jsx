@@ -1,16 +1,21 @@
 import { ExternalLink, FileText, Image as ImageIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { buildImageUrl } from '../context/AppContext.jsx';
 
 export default function AttachmentList({ attachments = [], title = 'Attachments' }) {
+  const { t } = useTranslation();
+
   if (!attachments.length) return null;
 
   return (
     <div className="card">
-      <p className="text-cs-muted text-xs font-medium uppercase tracking-wide mb-3">{title}</p>
+      <p className="text-cs-muted text-xs font-medium uppercase tracking-wide mb-3">
+        {title === 'Attachments' ? t('attachmentList.title') : title}
+      </p>
       <div className="grid grid-cols-1 gap-3">
         {attachments.map((attachment) => {
           const fileUrl = attachment.url || buildImageUrl(attachment.fileUrl);
-          const isImage = attachment.fileType === 'image';
+          const isImage = String(attachment.fileType || '').startsWith('image');
 
           return (
             <a
@@ -40,10 +45,10 @@ export default function AttachmentList({ attachments = [], title = 'Attachments'
 
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium truncate" style={{ color: 'var(--cs-ink)' }}>
-                  {attachment.fileName || 'Attachment'}
+                  {attachment.fileName || t('attachmentList.attachmentFallback')}
                 </p>
                 <p className="text-xs mt-1" style={{ color: 'var(--cs-muted)' }}>
-                  {isImage ? 'Image attachment' : 'PDF attachment'}
+                  {isImage ? t('attachmentList.imageAttachment') : t('attachmentList.pdfAttachment')}
                 </p>
               </div>
 

@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   AlertCircle,
   ArrowLeft,
   Eye,
   EyeOff,
   LogIn,
-  Shield,
   UserPlus,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext.jsx';
+import AppLogo from '../components/AppLogo.jsx';
 
 export default function MobileLogin() {
+  const { t } = useTranslation();
   const { loginMobile, registerCitizenAccount, setSidebarOpen } = useApp();
   const navigate = useNavigate();
 
@@ -33,22 +35,22 @@ export default function MobileLogin() {
     setError('');
 
     if (isCreateMode && !form.name.trim()) {
-      setError('Please enter your full name.');
+      setError(t('mobileLogin.errors.enterFullName'));
       return;
     }
 
     if (!form.identifier.trim()) {
-      setError('Enter your mobile number or email address.');
+      setError(t('mobileLogin.errors.enterIdentifier'));
       return;
     }
 
     if (!form.password) {
-      setError('Enter your password.');
+      setError(t('mobileLogin.errors.enterPassword'));
       return;
     }
 
     if (isCreateMode && form.password !== form.confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t('mobileLogin.errors.passwordMismatch'));
       return;
     }
 
@@ -63,7 +65,7 @@ export default function MobileLogin() {
         });
 
         if (!result.success) {
-          setError(result.message || 'Unable to create account.');
+          setError(result.message || t('mobileLogin.errors.createFailed'));
           return;
         }
 
@@ -79,7 +81,7 @@ export default function MobileLogin() {
       if (result.success) {
         navigate('/camera', { replace: true });
       } else {
-        setError(result.message || 'Unable to sign in.');
+        setError(result.message || t('mobileLogin.errors.signInFailed'));
       }
     } finally {
       setLoading(false);
@@ -100,33 +102,33 @@ export default function MobileLogin() {
         >
           <ArrowLeft className="w-4 h-4" />
         </button>
-        <span className="page-title">Citizen Access</span>
+        <span className="page-title">{t('mobileLogin.title')}</span>
         <div className="w-9" />
       </div>
 
       <div className="scrollable">
         <div className="px-5 py-8 flex flex-col gap-6 bottom-safe">
           <div className="flex flex-col items-center gap-4 py-4">
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg"
-              style={{ background: 'linear-gradient(135deg, var(--cs-accent) 0%, #1e40af 100%)' }}
-            >
-              <Shield className="w-8 h-8 text-white" />
-            </div>
+            <AppLogo
+              stacked
+              showTitle={false}
+              imageClassName="w-[120px] h-auto"
+              clickable={false}
+            />
             <div className="text-center">
               <h1 className="text-xl font-bold" style={{ color: 'var(--cs-ink)' }}>
-                Welcome to CivicSnap
+                {t('mobileLogin.welcomeTitle')}
               </h1>
               <p className="text-sm mt-1" style={{ color: 'var(--cs-muted)' }}>
-                Sign in or create a citizen account with your mobile number or email.
+                {t('mobileLogin.welcomeSubtitle')}
               </p>
             </div>
           </div>
 
           <div className="flex rounded-xl p-1 gap-1" style={{ background: '#FFFFFF', border: '1px solid var(--cs-border)' }}>
             {[
-              { key: 'login', label: 'Sign In' },
-              { key: 'create', label: 'Create Account' },
+              { key: 'login', label: t('common.signIn') },
+              { key: 'create', label: t('common.createAccount') },
             ].map((item) => (
               <button
                 key={item.key}
@@ -151,12 +153,12 @@ export default function MobileLogin() {
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               {isCreateMode && (
                 <div>
-                  <label className="label" htmlFor="ml-name">Full Name</label>
+                  <label className="label" htmlFor="ml-name">{t('common.fullName')}</label>
                   <input
                     id="ml-name"
                     type="text"
                     className="input-field"
-                    placeholder="Enter your full name"
+                    placeholder={t('common.enterFullName')}
                     value={form.name}
                     onChange={(event) => {
                       setForm({ ...form, name: event.target.value });
@@ -168,12 +170,12 @@ export default function MobileLogin() {
               )}
 
               <div>
-                <label className="label" htmlFor="ml-identifier">Mobile Number or Email</label>
+                <label className="label" htmlFor="ml-identifier">{t('common.mobileOrEmail')}</label>
                 <input
                   id="ml-identifier"
                   type="text"
                   className="input-field"
-                  placeholder="9876543210 or name@example.com"
+                  placeholder={t('common.identifierPlaceholder')}
                   value={form.identifier}
                   autoComplete="username"
                   onChange={(event) => {
@@ -185,13 +187,13 @@ export default function MobileLogin() {
               </div>
 
               <div>
-                <label className="label" htmlFor="ml-password">Password</label>
+                <label className="label" htmlFor="ml-password">{t('common.password')}</label>
                 <div className="relative">
                   <input
                     id="ml-password"
                     type={showPw ? 'text' : 'password'}
                     className="input-field pr-10"
-                    placeholder="Enter your password"
+                    placeholder={t('common.enterPassword')}
                     value={form.password}
                     autoComplete="current-password"
                     onChange={(event) => {
@@ -205,7 +207,7 @@ export default function MobileLogin() {
                     onClick={() => setShowPw((value) => !value)}
                     className="absolute right-3 top-1/2 -translate-y-1/2"
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cs-muted)', padding: 0 }}
-                    aria-label={showPw ? 'Hide password' : 'Show password'}
+                    aria-label={showPw ? t('common.hidePassword') : t('common.showPassword')}
                   >
                     {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -214,12 +216,12 @@ export default function MobileLogin() {
 
               {isCreateMode && (
                 <div>
-                  <label className="label" htmlFor="ml-confirm-password">Confirm Password</label>
+                  <label className="label" htmlFor="ml-confirm-password">{t('common.confirmPassword')}</label>
                   <input
                     id="ml-confirm-password"
                     type={showPw ? 'text' : 'password'}
                     className="input-field"
-                    placeholder="Re-enter your password"
+                    placeholder={t('common.reEnterPassword')}
                     value={form.confirmPassword}
                     onChange={(event) => {
                       setForm({ ...form, confirmPassword: event.target.value });
@@ -257,12 +259,12 @@ export default function MobileLogin() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                     </svg>
-                    {isCreateMode ? 'Creating account...' : 'Signing in...'}
+                    {isCreateMode ? t('common.loadingCreatingAccount') : t('common.loadingSigningIn')}
                   </>
                 ) : (
                   <>
                     {isCreateMode ? <UserPlus className="w-4 h-4" /> : <LogIn className="w-4 h-4" />}
-                    {isCreateMode ? 'Create Account' : 'Sign In'}
+                    {isCreateMode ? t('mobileLogin.submitCreate') : t('mobileLogin.submitLogin')}
                   </>
                 )}
               </button>
@@ -273,9 +275,9 @@ export default function MobileLogin() {
             className="rounded-xl px-4 py-3 text-xs flex flex-col gap-1"
             style={{ background: 'var(--cs-subtle)', border: '1px solid var(--cs-border)', color: 'var(--cs-muted)' }}
           >
-            <span className="font-semibold" style={{ color: 'var(--cs-ink)' }}>Citizen account rules</span>
-            <span>Use a 10-digit mobile number or a valid email address.</span>
-            <span>Citizen accounts are stored in the backend so you can sign in on any device.</span>
+            <span className="font-semibold" style={{ color: 'var(--cs-ink)' }}>{t('mobileLogin.rulesTitle')}</span>
+            <span>{t('mobileLogin.rulesLine1')}</span>
+            <span>{t('mobileLogin.rulesLine2')}</span>
           </div>
         </div>
       </div>

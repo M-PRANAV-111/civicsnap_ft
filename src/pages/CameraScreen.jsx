@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '../context/AppContext.jsx';
+import AppLogo from '../components/AppLogo.jsx';
 import {
   AlertTriangle,
-  Camera,
   Image,
   Loader2,
   Menu,
@@ -27,37 +28,39 @@ function isMobileViewport() {
   return window.innerWidth < 768;
 }
 
-function buildCameraError(type, detail = '') {
+function buildCameraError(type, t, detail = '') {
   switch (type) {
     case 'DESKTOP_ONLY':
       return {
-        title: 'Camera opens automatically on mobile only.',
-        detail: 'Use the desktop dashboard to submit complaints from your computer.',
+        title: t('camera.errors.desktopOnlyTitle'),
+        detail: t('camera.errors.desktopOnlyDetail'),
       };
     case 'INSECURE_CONTEXT':
       return {
-        title: 'Camera requires HTTPS',
-        detail: 'Open CivicSnap over HTTPS or localhost to use the camera. You can still upload a photo below.',
+        title: t('camera.errors.insecureTitle'),
+        detail: t('camera.errors.insecureDetail'),
       };
     case 'PERMISSION_DENIED':
       return {
-        title: 'Camera access required to continue.',
-        detail: 'Please allow camera access in your browser settings, then retry.',
+        title: t('camera.errors.permissionTitle'),
+        detail: t('camera.errors.permissionDetail'),
       };
     case 'UNSUPPORTED':
       return {
-        title: 'Camera is not supported on this browser.',
-        detail: 'Use the gallery upload option instead.',
+        title: t('camera.errors.unsupportedTitle'),
+        detail: t('camera.errors.unsupportedDetail'),
       };
     default:
       return {
-        title: 'Camera unavailable',
-        detail: detail || 'We could not start the camera on this device right now.',
+        title: t('camera.errors.unavailableTitle'),
+        detail: detail || t('camera.errors.unavailableDetail'),
       };
   }
 }
 
 function FallbackScreen({ error, onRetry, onUpload, onOpenMenu, allowRetry = true }) {
+  const { t } = useTranslation();
+
   return (
     <div className="screen items-center justify-center px-8 gap-5" style={{ background: 'var(--cs-bg)' }}>
       <div
@@ -76,8 +79,12 @@ function FallbackScreen({ error, onRetry, onUpload, onOpenMenu, allowRetry = tru
           className="flex items-center gap-2 px-3 py-1.5 rounded-full border"
           style={{ background: 'var(--cs-card)', borderColor: 'var(--cs-border)' }}
         >
-          <Camera className="w-3.5 h-3.5" style={{ color: 'var(--cs-accent)' }} />
-          <span className="text-xs font-medium" style={{ color: 'var(--cs-ink)' }}>CivicSnap</span>
+          <AppLogo
+            showTitle={false}
+            clickable={false}
+            imageClassName="h-8 w-auto"
+            containerClassName="leading-none"
+          />
         </div>
         <div className="w-10" />
       </div>
@@ -102,11 +109,11 @@ function FallbackScreen({ error, onRetry, onUpload, onOpenMenu, allowRetry = tru
         <div className="flex flex-col gap-2 w-full">
           {allowRetry && (
             <button type="button" onClick={onRetry} className="btn-primary w-full">
-              Retry Camera
+              {t('camera.retryCamera')}
             </button>
           )}
           <button type="button" onClick={onUpload} className="btn-secondary w-full">
-            <Upload className="w-4 h-4" /> Upload Photo Instead
+            <Upload className="w-4 h-4" /> {t('camera.uploadInstead')}
           </button>
         </div>
       </div>
@@ -115,6 +122,7 @@ function FallbackScreen({ error, onRetry, onUpload, onOpenMenu, allowRetry = tru
 }
 
 export default function CameraScreen() {
+  const { t } = useTranslation();
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
@@ -187,19 +195,19 @@ export default function CameraScreen() {
 
     if (!mobileViewport) {
       setCameraLoading(false);
-      setCameraError(buildCameraError('DESKTOP_ONLY'));
+      setCameraError(buildCameraError('DESKTOP_ONLY', t));
       return;
     }
 
     if (!isSecureCameraContext()) {
       setCameraLoading(false);
-      setCameraError(buildCameraError('INSECURE_CONTEXT'));
+      setCameraError(buildCameraError('INSECURE_CONTEXT', t));
       return;
     }
 
     if (!navigator.mediaDevices?.getUserMedia) {
       setCameraLoading(false);
-      setCameraError(buildCameraError('UNSUPPORTED'));
+      setCameraError(buildCameraError('UNSUPPORTED', t));
       return;
     }
 
@@ -209,7 +217,7 @@ export default function CameraScreen() {
           const permissionStatus = await navigator.permissions.query({ name: 'camera' });
           if (permissionStatus?.state === 'denied') {
             setCameraLoading(false);
-            setCameraError(buildCameraError('PERMISSION_DENIED'));
+            setCameraError(buildCameraError('PERMISSION_DENIED', t));
             return;
           }
         } catch {
@@ -255,7 +263,8 @@ export default function CameraScreen() {
           setCameraError(
             buildCameraError(
               'CAMERA_UNAVAILABLE',
-              'Camera preview did not finish loading. Please retry or upload a photo instead.',
+              t,
+              t('camera.errors.previewTimeout'),
             ),
           );
         }, 4000);
@@ -264,23 +273,23 @@ export default function CameraScreen() {
       clearReadinessWatchers();
       setCameraLoading(false);
       if (error?.name === 'NotAllowedError' || error?.name === 'SecurityError') {
-        setCameraError(buildCameraError('PERMISSION_DENIED'));
+        setCameraError(buildCameraError('PERMISSION_DENIED', t));
         return;
       }
 
       if (error?.name === 'NotFoundError' || error?.name === 'OverconstrainedError') {
-        setCameraError(buildCameraError('CAMERA_UNAVAILABLE', 'No usable camera was found on this device.'));
+        setCameraError(buildCameraError('CAMERA_UNAVAILABLE', t, t('camera.errors.noDevice')));
         return;
       }
 
       if (error?.name === 'NotReadableError') {
-        setCameraError(buildCameraError('CAMERA_UNAVAILABLE', 'The camera is already in use by another app.'));
+        setCameraError(buildCameraError('CAMERA_UNAVAILABLE', t, t('camera.errors.inUse')));
         return;
       }
 
-      setCameraError(buildCameraError('CAMERA_UNAVAILABLE', error?.message));
+      setCameraError(buildCameraError('CAMERA_UNAVAILABLE', t, error?.message));
     }
-  }, [clearReadinessWatchers, facingMode, markCameraReady, mobileViewport, mounted, stopCamera]);
+  }, [clearReadinessWatchers, facingMode, markCameraReady, mobileViewport, mounted, stopCamera, t]);
 
   useEffect(() => {
     setMounted(true);
@@ -344,7 +353,7 @@ export default function CameraScreen() {
           onRetry={startCamera}
           onUpload={() => fileInputRef.current?.click()}
           onOpenMenu={() => setSidebarOpen(true)}
-          allowRetry={cameraError.title !== 'Camera opens automatically on mobile only.'}
+          allowRetry={cameraError.title !== t('camera.errors.desktopOnlyTitle')}
         />
         <input
           ref={fileInputRef}
@@ -393,9 +402,12 @@ export default function CameraScreen() {
 
         <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md border border-white/20 rounded-full px-3 py-1.5">
           <div className={`w-2 h-2 rounded-full ${cameraReady ? 'bg-blue-400 animate-pulse' : 'bg-amber-400'}`} />
-          <span className="text-white text-xs font-medium tracking-wide">
-            {cameraLoading ? 'Opening Camera' : 'CivicSnap'}
-          </span>
+          <AppLogo
+            showTitle={false}
+            clickable={false}
+            imageClassName="h-8 w-auto brightness-0 invert"
+            containerClassName="leading-none"
+          />
         </div>
 
         <button
@@ -427,8 +439,8 @@ export default function CameraScreen() {
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/55 backdrop-blur-sm">
           <Loader2 className="w-8 h-8 text-white animate-spin" />
           <div className="text-center px-8">
-            <p className="text-white text-sm font-medium">Opening camera...</p>
-            <p className="text-white/60 text-xs mt-1">Camera access required to continue.</p>
+            <p className="text-white text-sm font-medium">{t('camera.openingCamera')}</p>
+            <p className="text-white/60 text-xs mt-1">{t('camera.cameraAccessRequired')}</p>
           </div>
         </div>
       )}
@@ -483,7 +495,7 @@ export default function CameraScreen() {
         style={{ bottom: 'calc(9rem + env(safe-area-inset-bottom))' }}
       >
         <p className="text-white/40 text-xs tracking-wide">
-          {cameraReady ? 'Tap the button to capture a photo' : 'Waiting for camera preview...'}
+          {cameraReady ? t('camera.tapToCapture') : t('camera.waitingForPreview')}
         </p>
       </div>
     </div>

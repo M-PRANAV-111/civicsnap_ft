@@ -1,18 +1,12 @@
 import { useNavigate } from 'react-router-dom';
 import { MapPin, ChevronRight, Image } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import StatusBadge from './StatusBadge.jsx';
 import { buildImageUrl } from '../context/AppContext.jsx';
-
-function formatDate(iso) {
-  if (!iso) return 'Just now';
-  return new Date(iso).toLocaleDateString('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
+import { formatLocalizedDate, translateCategory } from '../utils/i18nHelpers.js';
 
 function ComplaintCardBody({ complaint }) {
+  const { t, i18n } = useTranslation();
   const thumbnail = complaint.image || buildImageUrl(complaint.imageUrl);
 
   return (
@@ -22,7 +16,7 @@ function ComplaintCardBody({ complaint }) {
         style={{ background: 'var(--cs-subtle)', borderColor: 'var(--cs-border)' }}
       >
         {thumbnail ? (
-          <img src={thumbnail} alt="complaint" className="w-full h-full object-cover" />
+          <img src={thumbnail} alt={t('complaintCard.imageAlt')} className="w-full h-full object-cover" />
         ) : (
           <Image className="w-5 h-5" style={{ color: 'rgba(75,85,99,0.4)' }} />
         )}
@@ -36,15 +30,21 @@ function ComplaintCardBody({ complaint }) {
           <StatusBadge status={complaint.status} />
         </div>
         <p className="text-sm font-medium leading-snug mb-1.5 line-clamp-2" style={{ color: 'var(--cs-ink)' }}>
-          {complaint.description || 'No description provided'}
+          {complaint.description || t('complaintCard.noDescription')}
         </p>
         <div className="flex items-center gap-1 text-xs mb-1" style={{ color: 'var(--cs-muted)' }}>
           <MapPin className="w-3 h-3 flex-shrink-0" />
-          <span className="truncate">{complaint.address || 'Location pending'}</span>
+          <span className="truncate">{complaint.address || t('complaintCard.locationPending')}</span>
         </div>
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs" style={{ color: 'rgba(75,85,99,0.6)' }}>
-            {formatDate(complaint.submittedAt)}
+            {complaint.submittedAt
+              ? formatLocalizedDate(complaint.submittedAt, i18n, {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })
+              : t('complaintCard.justNow')}
           </span>
           <span
             className="text-xs px-2 py-0.5 rounded-full border"
@@ -54,7 +54,7 @@ function ComplaintCardBody({ complaint }) {
               borderColor: 'var(--cs-border)',
             }}
           >
-            {complaint.category}
+            {translateCategory(t, complaint.category)}
           </span>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   AlertCircle,
   AlertTriangle,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext.jsx';
 import ComplaintCard from '../components/ComplaintCard.jsx';
+import { formatLocalizedDate, translateStatus } from '../utils/i18nHelpers.js';
 
 function Toast({ message, type = 'success', onClose }) {
   const accentColor = type === 'error' ? '#DC2626' : '#059669';
@@ -53,23 +55,24 @@ function ModalShell({ title, children, onClose }) {
 }
 
 function RejectModal({ complaint, loading, onClose, onConfirm }) {
+  const { t } = useTranslation();
   const [reason, setReason] = useState('');
 
   return (
-    <ModalShell title="Reject Complaint" onClose={onClose}>
+    <ModalShell title={t('officerDashboard.modals.rejectTitle')} onClose={onClose}>
       <p className="text-sm mb-3" style={{ color: 'var(--cs-muted)' }}>
-        Add a clear rejection reason for <strong>{complaint.id}</strong>.
+        {t('officerDashboard.modals.rejectBody', { id: complaint.id })}
       </p>
       <textarea
         className="input-field resize-none"
         rows={4}
-        placeholder="Explain why this complaint is being rejected..."
+        placeholder={t('officerDashboard.modals.rejectPlaceholder')}
         value={reason}
         onChange={(event) => setReason(event.target.value)}
       />
       <div className="flex gap-2 mt-4">
         <button type="button" onClick={onClose} className="btn-secondary py-2.5 text-sm">
-          Cancel
+          {t('common.cancel')}
         </button>
         <button
           type="button"
@@ -77,7 +80,7 @@ function RejectModal({ complaint, loading, onClose, onConfirm }) {
           disabled={!reason.trim() || loading}
           className="btn-danger py-2.5 text-sm disabled:opacity-50"
         >
-          {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : <><XCircle className="w-4 h-4" /> Reject</>}
+          {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('common.saving')}</> : <><XCircle className="w-4 h-4" /> {t('officerDashboard.actions.reject')}</>}
         </button>
       </div>
     </ModalShell>
@@ -85,17 +88,18 @@ function RejectModal({ complaint, loading, onClose, onConfirm }) {
 }
 
 function ResolveModal({ complaint, loading, onClose, onConfirm }) {
+  const { t } = useTranslation();
   const [file, setFile] = useState(null);
 
   return (
-    <ModalShell title="Resolve Complaint" onClose={onClose}>
+    <ModalShell title={t('officerDashboard.modals.resolveTitle')} onClose={onClose}>
       <p className="text-sm mb-3" style={{ color: 'var(--cs-muted)' }}>
-        Upload an optional proof image before resolving <strong>{complaint.id}</strong>.
+        {t('officerDashboard.modals.resolveBody', { id: complaint.id })}
       </p>
       <label className="cursor-pointer block">
         <div className="border-2 border-dashed border-cs-border rounded-xl h-28 flex flex-col items-center justify-center gap-2 hover:border-accent/40 hover:bg-cs-subtle transition-all">
           <Upload className="w-6 h-6 text-cs-muted/40" />
-          <p className="text-cs-muted text-sm">{file ? file.name : 'Tap to upload proof image'}</p>
+          <p className="text-cs-muted text-sm">{file ? file.name : t('officerDashboard.modals.resolveUpload')}</p>
         </div>
         <input
           type="file"
@@ -106,7 +110,7 @@ function ResolveModal({ complaint, loading, onClose, onConfirm }) {
       </label>
       <div className="flex gap-2 mt-4">
         <button type="button" onClick={onClose} className="btn-secondary py-2.5 text-sm">
-          Cancel
+          {t('common.cancel')}
         </button>
         <button
           type="button"
@@ -114,7 +118,7 @@ function ResolveModal({ complaint, loading, onClose, onConfirm }) {
           disabled={loading}
           className="btn-success py-2.5 text-sm disabled:opacity-50"
         >
-          {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : <><CheckCircle2 className="w-4 h-4" /> Resolve</>}
+          {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('common.saving')}</> : <><CheckCircle2 className="w-4 h-4" /> {t('officerDashboard.actions.resolve')}</>}
         </button>
       </div>
     </ModalShell>
@@ -122,15 +126,16 @@ function ResolveModal({ complaint, loading, onClose, onConfirm }) {
 }
 
 function TransferModal({ complaint, departments, loading, onClose, onConfirm }) {
+  const { t } = useTranslation();
   const [departmentId, setDepartmentId] = useState('');
 
   return (
-    <ModalShell title="Transfer Complaint" onClose={onClose}>
+    <ModalShell title={t('officerDashboard.modals.transferTitle')} onClose={onClose}>
       <p className="text-sm mb-3" style={{ color: 'var(--cs-muted)' }}>
-        Move <strong>{complaint.id}</strong> to another department.
+        {t('officerDashboard.modals.transferBody', { id: complaint.id })}
       </p>
       <select className="input-field" value={departmentId} onChange={(event) => setDepartmentId(event.target.value)}>
-        <option value="">Select target department</option>
+        <option value="">{t('officerDashboard.modals.selectDepartment')}</option>
         {departments
           .filter((department) => department._id !== complaint.departmentId)
           .map((department) => (
@@ -141,7 +146,7 @@ function TransferModal({ complaint, departments, loading, onClose, onConfirm }) 
       </select>
       <div className="flex gap-2 mt-4">
         <button type="button" onClick={onClose} className="btn-secondary py-2.5 text-sm">
-          Cancel
+          {t('common.cancel')}
         </button>
         <button
           type="button"
@@ -149,18 +154,15 @@ function TransferModal({ complaint, departments, loading, onClose, onConfirm }) 
           disabled={!departmentId || loading}
           className="btn-primary py-2.5 text-sm disabled:opacity-50"
         >
-          {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Moving...</> : <><ArrowRightLeft className="w-4 h-4" /> Transfer</>}
+          {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('officerDashboard.moving')}</> : <><ArrowRightLeft className="w-4 h-4" /> {t('officerDashboard.actions.transfer')}</>}
         </button>
       </div>
     </ModalShell>
   );
 }
 
-function formatDate(iso) {
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-}
-
 export default function OfficerDashboard({ desktop = false }) {
+  const { t, i18n } = useTranslation();
   const {
     authUser,
     departments,
@@ -190,7 +192,7 @@ export default function OfficerDashboard({ desktop = false }) {
     try {
       await fetchOfficerComplaints();
     } catch (error) {
-      setLoadError(error.message || 'Unable to load assigned complaints.');
+      setLoadError(error.message || t('officerDashboard.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -210,9 +212,9 @@ export default function OfficerDashboard({ desktop = false }) {
   };
 
   const stats = [
-    { label: 'Total', count: officerComplaints.length, color: 'var(--cs-ink)', bg: '#FFFFFF' },
-    { label: 'Pending', count: officerComplaints.filter((complaint) => complaint.status === 'Pending').length, color: '#B45309', bg: '#FFFBEB' },
-    { label: 'Resolved', count: officerComplaints.filter((complaint) => complaint.status === 'Resolved').length, color: '#065F46', bg: '#ECFDF5' },
+    { label: t('common.total'), count: officerComplaints.length, color: 'var(--cs-ink)', bg: '#FFFFFF' },
+    { label: t('statuses.pending'), count: officerComplaints.filter((complaint) => complaint.status === 'Pending').length, color: '#B45309', bg: '#FFFBEB' },
+    { label: t('statuses.resolved'), count: officerComplaints.filter((complaint) => complaint.status === 'Resolved').length, color: '#065F46', bg: '#ECFDF5' },
   ];
 
   const filteredComplaints =
@@ -236,7 +238,7 @@ export default function OfficerDashboard({ desktop = false }) {
       setActionState({ type: null, complaint: null });
       showToast(successMessage);
     } catch (error) {
-      showToast(error.message || 'Action failed.', 'error');
+      showToast(error.message || t('officerDashboard.errors.actionFailed'), 'error');
     } finally {
       setBusyComplaintId('');
       setActionLoading(false);
@@ -253,10 +255,10 @@ export default function OfficerDashboard({ desktop = false }) {
           <AlertCircle className="w-7 h-7" style={{ color: 'var(--cs-muted)' }} />
         </div>
         <div className="text-center">
-          <p className="font-medium" style={{ color: 'var(--cs-ink)' }}>Authentication required</p>
-          <p className="text-sm mt-1" style={{ color: 'var(--cs-muted)' }}>Please log in to access the officer dashboard.</p>
+          <p className="font-medium" style={{ color: 'var(--cs-ink)' }}>{t('officerDashboard.authRequiredTitle')}</p>
+          <p className="text-sm mt-1" style={{ color: 'var(--cs-muted)' }}>{t('officerDashboard.authRequiredBody')}</p>
         </div>
-        <a href="/officer/login" className="btn-primary w-auto px-8">Login</a>
+        <a href="/officer/login" className="btn-primary w-auto px-8">{t('common.login')}</a>
       </div>
     );
   }
@@ -268,10 +270,10 @@ export default function OfficerDashboard({ desktop = false }) {
           <div className="page-header flex-shrink-0">
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4" style={{ color: 'var(--cs-accent)' }} />
-              <span className="page-title">Officer Dashboard</span>
+              <span className="page-title">{t('officerDashboard.title')}</span>
             </div>
             <button type="button" onClick={handleLogout} className="flex items-center gap-1.5 text-red-600 text-sm font-medium">
-              <LogOut className="w-4 h-4" /> Logout
+              <LogOut className="w-4 h-4" /> {t('common.logout')}
             </button>
           </div>
         )}
@@ -280,7 +282,7 @@ export default function OfficerDashboard({ desktop = false }) {
           <div className="mx-4 mt-4 rounded-xl border px-3 py-3 flex items-start gap-2" style={{ background: '#FEF2F2', borderColor: '#FECACA' }}>
             <AlertTriangle className="w-4 h-4 mt-0.5 text-red-500" />
             <p className="text-sm text-red-700">
-              This account has been flagged by the backend. Review your recent rejections before continuing.
+              {t('officerDashboard.flaggedNotice')}
             </p>
           </div>
         )}
@@ -296,9 +298,9 @@ export default function OfficerDashboard({ desktop = false }) {
 
         <div className="flex gap-1.5 px-4 pb-3 flex-shrink-0">
           {[
-            { key: 'pending', label: 'Pending' },
-            { key: 'inprogress', label: 'In Progress' },
-            { key: 'done', label: 'Done' },
+            { key: 'pending', label: t('statuses.pending') },
+            { key: 'inprogress', label: t('statuses.inProgress') },
+            { key: 'done', label: t('officerDashboard.doneTab') },
           ].map(({ key, label }) => (
             <button
               key={key}
@@ -320,23 +322,23 @@ export default function OfficerDashboard({ desktop = false }) {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--cs-accent)' }} />
-              <p className="text-sm" style={{ color: 'var(--cs-muted)' }}>Loading assigned complaints...</p>
+              <p className="text-sm" style={{ color: 'var(--cs-muted)' }}>{t('officerDashboard.loading')}</p>
             </div>
           ) : loadError ? (
             <div className="flex flex-col items-center justify-center py-16 gap-4">
               <AlertCircle className="w-8 h-8 text-red-400" />
               <div className="text-center">
-                <p className="text-sm font-medium" style={{ color: 'var(--cs-ink)' }}>Could not load complaints</p>
+                <p className="text-sm font-medium" style={{ color: 'var(--cs-ink)' }}>{t('officerDashboard.loadErrorTitle')}</p>
                 <p className="text-xs mt-1" style={{ color: 'var(--cs-muted)' }}>{loadError}</p>
               </div>
               <button type="button" onClick={loadOfficerData} className="btn-secondary w-auto px-6">
-                Retry
+                {t('common.retry')}
               </button>
             </div>
           ) : filteredComplaints.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <ClipboardList className="w-8 h-8" style={{ color: 'rgba(75,85,99,0.3)' }} />
-              <p className="text-sm" style={{ color: 'var(--cs-muted)' }}>No complaints in this category</p>
+              <p className="text-sm" style={{ color: 'var(--cs-muted)' }}>{t('officerDashboard.empty')}</p>
             </div>
           ) : (
             filteredComplaints.map((complaint) => {
@@ -349,9 +351,11 @@ export default function OfficerDashboard({ desktop = false }) {
                   onClick={() => {}}
                   footer={
                     <div className="flex items-center gap-2 text-xs flex-wrap" style={{ color: 'var(--cs-muted)' }}>
-                      <span>By {complaint.citizenName}</span>
+                      <span>{t('officerDashboard.byCitizen', { name: complaint.citizenName })}</span>
                       <span>&bull;</span>
-                      <span>{formatDate(complaint.submittedAt)}</span>
+                      <span>
+                        {formatLocalizedDate(complaint.submittedAt, i18n, { day: 'numeric', month: 'short' })}
+                      </span>
                       <span>&bull;</span>
                       <span>{complaint.departmentName || complaint.category}</span>
                     </div>
@@ -359,33 +363,38 @@ export default function OfficerDashboard({ desktop = false }) {
                   actions={
                     complaint.status === 'Pending' ? (
                       <div className="grid grid-cols-3 gap-2">
-                        <button type="button" onClick={() => runAction(complaint.id, () => officerAccept(complaint.id), `${complaint.id} accepted`)} disabled={isBusy} className="btn-secondary py-2 text-xs disabled:opacity-50">
-                          {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />} Accept
+                        <button
+                          type="button"
+                          onClick={() => runAction(complaint.id, () => officerAccept(complaint.id), t('officerDashboard.toasts.accepted', { id: complaint.id }))}
+                          disabled={isBusy}
+                          className="btn-secondary py-2 text-xs disabled:opacity-50"
+                        >
+                          {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />} {t('officerDashboard.actions.accept')}
                         </button>
                         <button type="button" onClick={() => setActionState({ type: 'reject', complaint })} disabled={isBusy} className="btn-danger py-2 text-xs disabled:opacity-50">
-                          <XCircle className="w-3.5 h-3.5" /> Reject
+                          <XCircle className="w-3.5 h-3.5" /> {t('officerDashboard.actions.reject')}
                         </button>
                         <button type="button" onClick={() => setActionState({ type: 'transfer', complaint })} disabled={isBusy} className="btn-primary py-2 text-xs disabled:opacity-50">
-                          <ArrowRightLeft className="w-3.5 h-3.5" /> Transfer
+                          <ArrowRightLeft className="w-3.5 h-3.5" /> {t('officerDashboard.actions.transfer')}
                         </button>
                       </div>
                     ) : complaint.status === 'In Progress' ? (
                       <div className="grid grid-cols-3 gap-2">
                         <button type="button" onClick={() => setActionState({ type: 'resolve', complaint })} disabled={isBusy} className="btn-success py-2 text-xs disabled:opacity-50">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Resolve
+                          <CheckCircle2 className="w-3.5 h-3.5" /> {t('officerDashboard.actions.resolve')}
                         </button>
                         <button type="button" onClick={() => setActionState({ type: 'reject', complaint })} disabled={isBusy} className="btn-danger py-2 text-xs disabled:opacity-50">
-                          <XCircle className="w-3.5 h-3.5" /> Reject
+                          <XCircle className="w-3.5 h-3.5" /> {t('officerDashboard.actions.reject')}
                         </button>
                         <button type="button" onClick={() => setActionState({ type: 'transfer', complaint })} disabled={isBusy} className="btn-primary py-2 text-xs disabled:opacity-50">
-                          <ArrowRightLeft className="w-3.5 h-3.5" /> Transfer
+                          <ArrowRightLeft className="w-3.5 h-3.5" /> {t('officerDashboard.actions.transfer')}
                         </button>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 rounded-xl px-3 py-2.5" style={{ background: 'var(--cs-subtle)' }}>
                         <CheckCircle2 className="w-4 h-4" style={{ color: 'var(--cs-muted)' }} />
                         <p className="text-xs" style={{ color: 'var(--cs-muted)' }}>
-                          Closed - no further action required.
+                          {t('officerDashboard.closedMessage', { status: translateStatus(t, complaint.status) })}
                         </p>
                       </div>
                     )
@@ -406,7 +415,7 @@ export default function OfficerDashboard({ desktop = false }) {
             runAction(
               actionState.complaint.id,
               () => officerReject(actionState.complaint.id, reason),
-              `${actionState.complaint.id} rejected`,
+              t('officerDashboard.toasts.rejected', { id: actionState.complaint.id }),
             )
           }
         />
@@ -421,7 +430,7 @@ export default function OfficerDashboard({ desktop = false }) {
             runAction(
               actionState.complaint.id,
               () => officerResolve(actionState.complaint.id, file),
-              `${actionState.complaint.id} resolved`,
+              t('officerDashboard.toasts.resolved', { id: actionState.complaint.id }),
             )
           }
         />
@@ -437,7 +446,7 @@ export default function OfficerDashboard({ desktop = false }) {
             runAction(
               actionState.complaint.id,
               () => officerTransfer(actionState.complaint.id, departmentId),
-              `${actionState.complaint.id} transferred`,
+              t('officerDashboard.toasts.transferred', { id: actionState.complaint.id }),
             )
           }
         />

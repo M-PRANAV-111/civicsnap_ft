@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, AlertCircle, CheckCircle2, Loader2, Star, Upload } from 'lucide-react';
 import { useApp } from '../context/AppContext.jsx';
 
-const LABELS = ['', 'Very Dissatisfied', 'Dissatisfied', 'Neutral', 'Satisfied', 'Very Satisfied'];
+const LABEL_KEYS = ['', 'veryDissatisfied', 'dissatisfied', 'neutral', 'satisfied', 'verySatisfied'];
 
 export default function ReviewScreen() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const { submitReview, token } = useApp();
@@ -31,7 +33,7 @@ export default function ReviewScreen() {
 
   const handleSubmit = async () => {
     if (!token) {
-      setError('You need to sign in before submitting a review.');
+      setError(t('review.errors.loginRequired'));
       return;
     }
 
@@ -51,7 +53,7 @@ export default function ReviewScreen() {
       setSubmitted(true);
       setTimeout(() => navigate(`/complaint/${id}`), 1500);
     } catch (submitError) {
-      setError(submitError.message || 'Unable to submit your review right now.');
+      setError(submitError.message || t('review.errors.submitFailed'));
       setSubmitting(false);
     }
   };
@@ -61,13 +63,13 @@ export default function ReviewScreen() {
       <div className="screen bg-cs-bg items-center justify-center gap-5 px-6">
         <AlertCircle className="w-10 h-10 text-amber-500" />
         <div className="text-center">
-          <h2 className="text-xl font-bold text-cs-ink">Login Required</h2>
+          <h2 className="text-xl font-bold text-cs-ink">{t('review.loginRequiredTitle')}</h2>
           <p className="text-cs-muted text-sm mt-1.5">
-            Reviews are linked to registered accounts, so please sign in before submitting one.
+            {t('review.loginRequiredBody')}
           </p>
         </div>
         <button type="button" onClick={() => navigate('/login')} className="btn-primary w-auto px-6">
-          Go to Login
+          {t('review.goToLogin')}
         </button>
       </div>
     );
@@ -80,8 +82,8 @@ export default function ReviewScreen() {
           <Star className="w-10 h-10 text-amber-500 fill-amber-500" />
         </div>
         <div className="text-center">
-          <h2 className="text-xl font-bold text-cs-ink">Thank you!</h2>
-          <p className="text-cs-muted text-sm mt-1.5">Your feedback helps improve civic services.</p>
+          <h2 className="text-xl font-bold text-cs-ink">{t('review.thankYouTitle')}</h2>
+          <p className="text-cs-muted text-sm mt-1.5">{t('review.thankYouBody')}</p>
         </div>
       </div>
     );
@@ -93,7 +95,7 @@ export default function ReviewScreen() {
         <button type="button" onClick={() => navigate(-1)} className="btn-ghost w-9 h-9 p-0 justify-center rounded-xl">
           <ArrowLeft className="w-4 h-4" />
         </button>
-        <span className="page-title">Leave Review</span>
+        <span className="page-title">{t('review.title')}</span>
         <div className="w-9" />
       </div>
 
@@ -103,13 +105,13 @@ export default function ReviewScreen() {
             <span className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-full px-4 py-2 text-sm">
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
               <span className="text-emerald-700">
-                Complaint <strong>{id}</strong> resolved
+                {t('review.resolvedComplaint', { id })}
               </span>
             </span>
           </div>
 
           <div className="card text-center">
-            <p className="text-cs-muted text-sm mb-4">How satisfied are you with the resolution?</p>
+            <p className="text-cs-muted text-sm mb-4">{t('review.question')}</p>
             <div className="flex items-center justify-center gap-2 mb-3">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
@@ -131,18 +133,18 @@ export default function ReviewScreen() {
             </div>
             {rating > 0 && (
               <span className="inline-flex items-center px-3 py-1 bg-amber-50 border border-amber-100 rounded-full text-amber-700 text-sm font-medium">
-                {LABELS[rating]}
+                {t(`review.labels.${LABEL_KEYS[rating]}`)}
               </span>
             )}
           </div>
 
           <div>
             <label className="label">
-              After-resolution photo <span className="text-cs-muted/50 lowercase tracking-normal">(optional)</span>
+              {t('review.afterPhoto')} <span className="text-cs-muted/50 lowercase tracking-normal">({t('review.optional')})</span>
             </label>
             {afterImage ? (
               <div className="relative rounded-2xl overflow-hidden border border-cs-border h-40 shadow-card">
-                <img src={afterImage} alt="After resolution" className="w-full h-full object-cover" />
+                <img src={afterImage} alt={t('review.afterPhotoAlt')} className="w-full h-full object-cover" />
                 <button
                   type="button"
                   onClick={() => {
@@ -158,8 +160,8 @@ export default function ReviewScreen() {
               <label className="cursor-pointer block">
                 <div className="border-2 border-dashed border-cs-border rounded-xl h-28 flex flex-col items-center justify-center gap-2 hover:border-accent/40 hover:bg-cs-subtle transition-all">
                   <Upload className="w-6 h-6 text-cs-muted/40" />
-                  <p className="text-cs-muted text-sm">Tap to upload photo</p>
-                  <p className="text-cs-muted/50 text-xs">Show the issue is fixed</p>
+                  <p className="text-cs-muted text-sm">{t('review.uploadPhoto')}</p>
+                  <p className="text-cs-muted/50 text-xs">{t('review.uploadPhotoHint')}</p>
                 </div>
                 <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
               </label>
@@ -168,13 +170,13 @@ export default function ReviewScreen() {
 
           <div>
             <label className="label" htmlFor="feedback">
-              Feedback <span className="text-cs-muted/50 lowercase tracking-normal">(optional)</span>
+              {t('review.feedback')} <span className="text-cs-muted/50 lowercase tracking-normal">({t('review.optional')})</span>
             </label>
             <textarea
               id="feedback"
               className="input-field resize-none"
               rows={4}
-              placeholder="Tell us about your experience with the resolution..."
+              placeholder={t('review.feedbackPlaceholder')}
               value={feedback}
               onChange={(event) => setFeedback(event.target.value)}
             />
@@ -196,15 +198,15 @@ export default function ReviewScreen() {
           >
             {submitting ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" /> Submitting...
+                <Loader2 className="w-4 h-4 animate-spin" /> {t('review.submitting')}
               </>
             ) : (
               <>
-                <Star className="w-4 h-4" /> Submit Review
+                <Star className="w-4 h-4" /> {t('review.submitReview')}
               </>
             )}
           </button>
-          {rating === 0 && <p className="text-center text-cs-muted text-xs -mt-3">Please select a star rating to continue</p>}
+          {rating === 0 && <p className="text-center text-cs-muted text-xs -mt-3">{t('review.selectRating')}</p>}
         </div>
       </div>
     </div>

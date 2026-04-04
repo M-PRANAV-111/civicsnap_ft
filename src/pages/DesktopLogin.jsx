@@ -1,34 +1,38 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, ArrowRight, Eye, EyeOff, Loader2, Shield, User, UserCheck } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '../context/AppContext.jsx';
 import InstallCornerButton from '../components/InstallCornerButton.jsx';
+import AppLogo from '../components/AppLogo.jsx';
+import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
 
 const ROLES = [
   {
     key: 'citizen',
-    label: 'Citizen',
+    labelKey: 'common.citizen',
     icon: User,
-    heading: 'Citizen access',
-    subtitle: 'Sign in or create a citizen account with your mobile number or email.',
+    headingKey: 'desktopLogin.citizenHeading',
+    subtitleKey: 'desktopLogin.citizenSubtitle',
   },
   {
     key: 'officer',
-    label: 'Officer',
+    labelKey: 'common.officer',
     icon: UserCheck,
-    heading: 'Officer portal',
-    subtitle: 'Sign in to manage assigned complaints.',
+    headingKey: 'desktopLogin.officerHeading',
+    subtitleKey: 'desktopLogin.officerSubtitle',
   },
   {
     key: 'admin',
-    label: 'Admin',
+    labelKey: 'common.admin',
     icon: Shield,
-    heading: 'Admin console',
-    subtitle: 'Sign in with administrator credentials.',
+    headingKey: 'desktopLogin.adminHeading',
+    subtitleKey: 'desktopLogin.adminSubtitle',
   },
 ];
 
 export default function DesktopLogin() {
+  const { t } = useTranslation();
   const { loginDesktop, registerCitizenAccount } = useApp();
   const navigate = useNavigate();
 
@@ -45,6 +49,7 @@ export default function DesktopLogin() {
   const [error, setError] = useState('');
 
   const roleConfig = ROLES.find((role) => role.key === activeRole);
+  const roleLabel = t(roleConfig.labelKey);
   const isCitizen = activeRole === 'citizen';
   const isCreateCitizen = isCitizen && citizenMode === 'create';
 
@@ -60,22 +65,22 @@ export default function DesktopLogin() {
     const password = form.password;
 
     if (isCreateCitizen && !form.name.trim()) {
-      setError('Please enter your full name.');
+      setError(t('desktopLogin.errors.enterFullName'));
       return;
     }
 
     if (!identifier) {
-      setError(isCitizen ? 'Enter your mobile number or email address.' : 'Enter your email address.');
+      setError(isCitizen ? t('desktopLogin.errors.enterIdentifier') : t('desktopLogin.errors.enterEmail'));
       return;
     }
 
     if (!password) {
-      setError('Enter your password.');
+      setError(t('desktopLogin.errors.enterPassword'));
       return;
     }
 
     if (isCreateCitizen && password !== form.confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t('desktopLogin.errors.passwordMismatch'));
       return;
     }
 
@@ -91,7 +96,7 @@ export default function DesktopLogin() {
         });
 
         if (!result.success) {
-          setError(result.message || 'Unable to create your account.');
+          setError(result.message || t('desktopLogin.errors.createFailed'));
           return;
         }
 
@@ -108,7 +113,7 @@ export default function DesktopLogin() {
       if (result.success) {
         navigate('/dashboard');
       } else {
-        setError(result.message || 'Unable to sign in.');
+        setError(result.message || t('desktopLogin.errors.signInFailed'));
       }
     } finally {
       setLoading(false);
@@ -123,30 +128,26 @@ export default function DesktopLogin() {
 
   return (
     <div className="relative h-full w-full flex" style={{ background: 'var(--cs-bg)' }}>
-      <div className="absolute top-5 right-5 z-10 hidden md:block">
-        <InstallCornerButton label="Install App" />
+      <div className="absolute top-5 right-5 z-10 hidden md:flex items-center gap-2">
+        <LanguageSwitcher />
+        <InstallCornerButton label={t('install.installApp')} />
       </div>
 
       <div className="hidden md:flex flex-col w-[42%] p-12" style={{ background: 'var(--cs-accent)' }}>
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.2)' }}>
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </div>
-          <span className="text-white font-semibold text-lg tracking-tight">CivicSnap</span>
-        </div>
+        <AppLogo
+          imageClassName="h-10 w-auto flex-shrink-0"
+          titleClassName="text-white font-semibold text-lg tracking-tight"
+        />
 
         <div className="flex-1 flex items-center">
           <div>
             <h1 className="text-white text-4xl font-bold leading-snug mb-4">
-              Governance,
+              {t('desktopLogin.heroTitleLine1')}
               <br />
-              made simple.
+              {t('desktopLogin.heroTitleLine2')}
             </h1>
             <p className="text-blue-200 text-base leading-relaxed max-w-xs">
-              A unified platform for citizens to report civic issues and for officers to resolve them fast.
+              {t('desktopLogin.heroSubtitle')}
             </p>
           </div>
         </div>
@@ -154,17 +155,17 @@ export default function DesktopLogin() {
 
       <div className="flex-1 flex items-center justify-center px-8">
         <div className="w-full max-w-sm">
-          <div className="flex items-center gap-2 mb-8 md:hidden">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--cs-accent)' }}>
-              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-              </svg>
-            </div>
-            <span className="font-semibold text-lg" style={{ color: 'var(--cs-ink)' }}>CivicSnap</span>
+          <div className="flex justify-center mb-8">
+            <AppLogo
+              stacked
+              showTitle={false}
+              imageClassName="w-[120px] h-auto"
+              clickable={false}
+            />
           </div>
 
           <div className="flex rounded-xl p-1 mb-8 gap-1" style={{ background: 'var(--cs-subtle)', border: '1px solid var(--cs-border)' }}>
-            {ROLES.map(({ key, label, icon: Icon }) => (
+            {ROLES.map(({ key, labelKey, icon: Icon }) => (
               <button
                 key={key}
                 type="button"
@@ -177,7 +178,7 @@ export default function DesktopLogin() {
                 }
               >
                 <Icon className="w-3.5 h-3.5" />
-                {label}
+                {t(labelKey)}
               </button>
             ))}
           </div>
@@ -185,8 +186,8 @@ export default function DesktopLogin() {
           {isCitizen && (
             <div className="flex rounded-xl p-1 mb-6 gap-1" style={{ background: '#FFFFFF', border: '1px solid var(--cs-border)' }}>
               {[
-                { key: 'login', label: 'Sign In' },
-                { key: 'create', label: 'Create Account' },
+                { key: 'login', label: t('common.signIn') },
+                { key: 'create', label: t('common.createAccount') },
               ].map((mode) => (
                 <button
                   key={mode.key}
@@ -206,19 +207,19 @@ export default function DesktopLogin() {
           )}
 
           <div className="mb-6">
-            <h2 className="text-2xl font-bold" style={{ color: 'var(--cs-ink)' }}>{roleConfig.heading}</h2>
-            <p className="text-sm mt-1" style={{ color: 'var(--cs-muted)' }}>{roleConfig.subtitle}</p>
+            <h2 className="text-2xl font-bold" style={{ color: 'var(--cs-ink)' }}>{t(roleConfig.headingKey)}</h2>
+            <p className="text-sm mt-1" style={{ color: 'var(--cs-muted)' }}>{t(roleConfig.subtitleKey)}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4" autoComplete="off">
             {isCreateCitizen && (
               <div>
-                <label className="label" htmlFor="citizen-name">Full Name</label>
+                <label className="label" htmlFor="citizen-name">{t('common.fullName')}</label>
                 <input
                   id="citizen-name"
                   type="text"
                   className="input-field"
-                  placeholder="Enter your full name"
+                  placeholder={t('common.enterFullName')}
                   value={form.name}
                   onChange={(event) => setForm({ ...form, name: event.target.value })}
                 />
@@ -227,13 +228,13 @@ export default function DesktopLogin() {
 
             <div>
               <label className="label" htmlFor="login-identifier">
-                {isCitizen ? 'Mobile Number or Email' : 'Email'}
+                {isCitizen ? t('common.mobileOrEmail') : t('common.email')}
               </label>
               <input
                 id="login-identifier"
                 type="text"
                 className="input-field"
-                placeholder={isCitizen ? '9876543210 or name@example.com' : 'Enter your email'}
+                placeholder={isCitizen ? t('common.identifierPlaceholder') : t('common.enterEmail')}
                 value={form.identifier}
                 onChange={(event) => setForm({ ...form, identifier: event.target.value })}
                 autoComplete={isCitizen ? 'username' : 'email'}
@@ -241,14 +242,14 @@ export default function DesktopLogin() {
             </div>
 
             <div>
-              <label className="label" htmlFor="login-password">Password</label>
+              <label className="label" htmlFor="login-password">{t('common.password')}</label>
               <div className="relative">
                 <input
                   id="login-password"
                   type={showPwd ? 'text' : 'password'}
                   className="input-field"
                   style={{ paddingRight: '2.75rem' }}
-                  placeholder="Enter your password"
+                  placeholder={t('common.enterPassword')}
                   value={form.password}
                   onChange={(event) => setForm({ ...form, password: event.target.value })}
                   autoComplete="current-password"
@@ -268,6 +269,7 @@ export default function DesktopLogin() {
                     padding: 0,
                   }}
                   tabIndex={-1}
+                  aria-label={showPwd ? t('common.hidePassword') : t('common.showPassword')}
                 >
                   {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -276,12 +278,12 @@ export default function DesktopLogin() {
 
             {isCreateCitizen && (
               <div>
-                <label className="label" htmlFor="citizen-confirm-password">Confirm Password</label>
+                <label className="label" htmlFor="citizen-confirm-password">{t('common.confirmPassword')}</label>
                 <input
                   id="citizen-confirm-password"
                   type={showPwd ? 'text' : 'password'}
                   className="input-field"
-                  placeholder="Re-enter your password"
+                  placeholder={t('common.reEnterPassword')}
                   value={form.confirmPassword}
                   onChange={(event) => setForm({ ...form, confirmPassword: event.target.value })}
                 />
@@ -302,10 +304,10 @@ export default function DesktopLogin() {
               style={{ opacity: isReady ? 1 : 0.5, cursor: isReady ? 'pointer' : 'not-allowed' }}
             >
               {loading ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> {isCreateCitizen ? 'Creating account...' : 'Signing in...'}</>
+                <><Loader2 className="w-4 h-4 animate-spin" /> {isCreateCitizen ? t('common.loadingCreatingAccount') : t('common.loadingSigningIn')}</>
               ) : (
                 <>
-                  <span>{isCreateCitizen ? 'Create Citizen Account' : `Sign in as ${roleConfig.label}`}</span>
+                  <span>{isCreateCitizen ? t('desktopLogin.createCitizenAccount') : t('desktopLogin.signInAs', { role: roleLabel })}</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
@@ -316,19 +318,19 @@ export default function DesktopLogin() {
             {isCitizen ? (
               <>
                 <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--cs-muted)' }}>
-                  Citizen account rules
+                  {t('desktopLogin.citizenRulesTitle')}
                 </p>
                 <p className="text-xs" style={{ color: 'var(--cs-ink)' }}>
-                  Use either a 10-digit mobile number or a valid email address. Citizen accounts are now stored in the backend so your login works across devices.
+                  {t('desktopLogin.citizenRulesBody')}
                 </p>
               </>
             ) : (
               <>
                 <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--cs-muted)' }}>
-                  Backend login
+                  {t('desktopLogin.backendLoginTitle')}
                 </p>
                 <p className="text-xs" style={{ color: 'var(--cs-ink)' }}>
-                  Use the seeded backend email/password for this role. Successful logins store the returned JWT and unlock protected dashboard requests.
+                  {t('desktopLogin.backendLoginBody')}
                 </p>
               </>
             )}

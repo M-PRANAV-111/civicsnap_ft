@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import i18n from '../i18n.js';
 
 const AppContext = createContext(null);
 
@@ -532,13 +533,13 @@ function getInstallSupportMode({ installPromptEvent, isStandaloneMode }) {
 function getInstallHint(mode) {
   switch (mode) {
     case 'prompt':
-      return 'Install this app for faster access and app-like experience.';
+      return i18n.t('install.hintPrompt');
     case 'ios-manual':
-      return 'Open the Share menu in your browser and choose Add to Home Screen.';
+      return i18n.t('install.hintIos');
     case 'browser-manual':
-      return 'Use the Install icon in the address bar, or open the browser menu and choose Install App.';
+      return i18n.t('install.hintBrowser');
     default:
-      return 'Install is not available on this browser yet.';
+      return i18n.t('install.hintUnsupported');
   }
 }
 
@@ -1048,10 +1049,10 @@ export function AppProvider({ children }) {
       const choice = await installPromptEvent.userChoice;
       setInstallPromptEvent(null);
       if (choice?.outcome === 'accepted') {
-        return { success: true, message: 'CivicSnap was added to your device.' };
+        return { success: true, message: i18n.t('install.success') };
       }
 
-      return { success: false, message: 'Install prompt was dismissed.' };
+      return { success: false, message: i18n.t('install.dismissed') };
     }
 
     return { success: false, manual: true, message: getInstallHint(installSupportMode) };

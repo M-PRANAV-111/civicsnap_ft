@@ -1,19 +1,24 @@
+import { useTranslation } from 'react-i18next';
+import { translateCategory } from '../utils/i18nHelpers.js';
+
 const CATEGORY_ICONS = {
   'Municipal / GHMC': '🏙️',
-  'Police': '👮',
+  Police: '👮',
   'Traffic Police': '🚦',
-  'Revenue': '📋',
-  'Endowments': '🛕',
+  Revenue: '📋',
+  Endowments: '🛕',
   'Water Supply': '💧',
-  'Electricity': '⚡',
-  'Health': '🏥',
-  'Education': '🎓',
+  Electricity: '⚡',
+  Health: '🏥',
+  Education: '🎓',
   'Rural Development': '🌾',
 };
 
 export const CATEGORIES = Object.keys(CATEGORY_ICONS);
 
 export default function CategoryCard({ category, selected, onSelect }) {
+  const { t } = useTranslation();
+
   return (
     <button
       onClick={() => onSelect(category)}
@@ -24,7 +29,7 @@ export default function CategoryCard({ category, selected, onSelect }) {
     >
       <span className="text-2xl leading-none">{CATEGORY_ICONS[category]}</span>
       <span className={`text-xs font-medium leading-tight ${selected ? 'text-cs-accent' : 'text-cs-muted'}`}>
-        {category}
+        {translateCategory(t, category)}
       </span>
     </button>
   );

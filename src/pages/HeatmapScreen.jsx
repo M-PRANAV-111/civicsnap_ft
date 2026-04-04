@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Activity,
   AlertCircle,
@@ -37,6 +38,7 @@ function HeatCell({ rate }) {
 }
 
 export default function HeatmapScreen() {
+  const { t } = useTranslation();
   const { apiFetch, setSidebarOpen } = useApp();
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -50,7 +52,7 @@ export default function HeatmapScreen() {
       const payload = await apiFetch('/api/analytics/overview');
       setAnalytics(payload);
     } catch (loadError) {
-      setError(loadError.message || 'Unable to load analytics.');
+      setError(loadError.message || t('analytics.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -76,7 +78,7 @@ export default function HeatmapScreen() {
         <button onClick={() => setSidebarOpen(true)} className="btn-ghost w-9 h-9 p-0 justify-center rounded-xl">
           <Menu className="w-4 h-4" />
         </button>
-        <span className="page-title">Analytics</span>
+        <span className="page-title">{t('analytics.title')}</span>
         <button type="button" onClick={loadAnalytics} className="btn-ghost w-9 h-9 p-0 justify-center rounded-xl">
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
         </button>
@@ -87,32 +89,32 @@ export default function HeatmapScreen() {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               <Loader2 className="w-8 h-8 animate-spin text-cs-accent" />
-              <p className="text-sm text-cs-muted">Loading analytics...</p>
+              <p className="text-sm text-cs-muted">{t('analytics.loading')}</p>
             </div>
           ) : error ? (
             <div className="card flex flex-col items-center text-center gap-3 py-10">
               <AlertCircle className="w-8 h-8 text-red-500" />
               <div>
-                <p className="text-sm font-medium text-cs-ink">Could not load analytics</p>
+                <p className="text-sm font-medium text-cs-ink">{t('analytics.loadErrorTitle')}</p>
                 <p className="text-xs mt-1 text-cs-muted">{error}</p>
               </div>
               <button type="button" onClick={loadAnalytics} className="btn-secondary w-auto px-6">
-                Retry
+                {t('common.retry')}
               </button>
             </div>
           ) : (
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-                <SummaryCard label="Total" value={summary.totalComplaints} icon={Activity} textClass="text-cs-ink" bgClass="bg-cs-card" />
-                <SummaryCard label="Resolved" value={summary.resolvedComplaints} icon={TrendingUp} textClass="text-emerald-700" bgClass="bg-emerald-50" borderClass="border-emerald-100" />
-                <SummaryCard label="Rate" value={`${summary.resolutionRate}%`} icon={BarChart2} textClass="text-cs-accent" bgClass="bg-blue-50" borderClass="border-blue-100" />
-                <SummaryCard label="Citizens" value={summary.totalCitizens} icon={MapPin} textClass="text-violet-700" bgClass="bg-violet-50" borderClass="border-violet-100" />
+                <SummaryCard label={t('common.total')} value={summary.totalComplaints} icon={Activity} textClass="text-cs-ink" bgClass="bg-cs-card" />
+                <SummaryCard label={t('statuses.resolved')} value={summary.resolvedComplaints} icon={TrendingUp} textClass="text-emerald-700" bgClass="bg-emerald-50" borderClass="border-emerald-100" />
+                <SummaryCard label={t('analytics.rate')} value={`${summary.resolutionRate}%`} icon={BarChart2} textClass="text-cs-accent" bgClass="bg-blue-50" borderClass="border-blue-100" />
+                <SummaryCard label={t('analytics.citizens')} value={summary.totalCitizens} icon={MapPin} textClass="text-violet-700" bgClass="bg-violet-50" borderClass="border-violet-100" />
               </div>
 
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <MapPin className="w-4 h-4 text-cs-accent" />
-                  <span className="text-sm font-semibold text-cs-ink">Department Resolution Heatmap</span>
+                  <span className="text-sm font-semibold text-cs-ink">{t('analytics.heatmapTitle')}</span>
                 </div>
                 <div className="flex items-center gap-4 mb-3 text-xs text-cs-muted">
                   {[
@@ -129,7 +131,7 @@ export default function HeatmapScreen() {
                 </div>
                 <div className="card p-3">
                   {topDepartments.length === 0 ? (
-                    <p className="text-sm text-cs-muted text-center py-6">No complaints yet, so analytics will appear once backend data exists.</p>
+                    <p className="text-sm text-cs-muted text-center py-6">{t('analytics.emptyHeatmap')}</p>
                   ) : (
                     <div className="grid grid-cols-3 gap-2" style={{ minHeight: '110px' }}>
                       {topDepartments.map((department) => (
@@ -147,12 +149,12 @@ export default function HeatmapScreen() {
 
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-semibold text-cs-ink">Department Breakdown</span>
-                  <span className="text-xs text-cs-muted">Resolution Rate</span>
+                  <span className="text-sm font-semibold text-cs-ink">{t('analytics.breakdownTitle')}</span>
+                  <span className="text-xs text-cs-muted">{t('analytics.resolutionRate')}</span>
                 </div>
                 <div className="flex flex-col gap-2">
                   {departmentBreakdown.length === 0 ? (
-                    <div className="card py-6 text-center text-sm text-cs-muted">No department analytics available yet.</div>
+                    <div className="card py-6 text-center text-sm text-cs-muted">{t('analytics.emptyBreakdown')}</div>
                   ) : (
                     departmentBreakdown.map((department) => (
                       <div key={department.departmentId} className="card py-3">
@@ -169,10 +171,10 @@ export default function HeatmapScreen() {
                           />
                         </div>
                         <div className="flex gap-3 mt-1.5 text-xs text-cs-muted flex-wrap">
-                          <span>{department.total} total</span>
-                          <span>{department.resolved} resolved</span>
-                          <span>{department.pending} pending</span>
-                          <span>{department.inProgress} in progress</span>
+                          <span>{t('analytics.countTotal', { count: department.total })}</span>
+                          <span>{t('analytics.countResolved', { count: department.resolved })}</span>
+                          <span>{t('analytics.countPending', { count: department.pending })}</span>
+                          <span>{t('analytics.countInProgress', { count: department.inProgress })}</span>
                         </div>
                       </div>
                     ))
@@ -183,7 +185,7 @@ export default function HeatmapScreen() {
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <BarChart2 className="w-4 h-4 text-cs-accent" />
-                  <span className="text-sm font-semibold text-cs-ink">Recent Monthly Trend</span>
+                  <span className="text-sm font-semibold text-cs-ink">{t('analytics.monthlyTrend')}</span>
                 </div>
                 <div className="card flex flex-col gap-3">
                   {monthlyTrend.map((month) => {
@@ -196,8 +198,8 @@ export default function HeatmapScreen() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs text-cs-muted">{month.total} filed</span>
-                            <span className="text-xs text-cs-muted">{month.resolved} resolved</span>
+                            <span className="text-xs text-cs-muted">{t('analytics.countFiled', { count: month.total })}</span>
+                            <span className="text-xs text-cs-muted">{t('analytics.countResolved', { count: month.resolved })}</span>
                           </div>
                           <div className="w-full h-1.5 bg-cs-subtle rounded-full overflow-hidden">
                             <div

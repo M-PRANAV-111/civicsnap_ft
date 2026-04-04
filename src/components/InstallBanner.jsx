@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { ArrowDownToLine, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { isMobileDevice, useApp } from '../context/AppContext.jsx';
 
 const INSTALL_DISMISSED_KEY = 'civicsnap_install_banner_dismissed';
@@ -47,6 +48,7 @@ function writeLocalFlag(key, value) {
 }
 
 export default function InstallBanner() {
+  const { t } = useTranslation();
   const { canInstallApp, installApp, installAppHint, installSupportMode, isStandaloneMode } = useApp();
   const location = useLocation();
   const [dismissed, setDismissed] = useState(() => readSessionFlag(INSTALL_DISMISSED_KEY));
@@ -121,10 +123,10 @@ export default function InstallBanner() {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-sm font-semibold" style={{ color: 'var(--cs-ink)' }}>
-              Install CivicSnap
+              {t('install.bannerTitle')}
             </p>
             <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--cs-muted)' }}>
-              Install this app for faster access and app-like experience.
+              {t('install.bannerText')}
             </p>
           </div>
           <button
@@ -132,7 +134,7 @@ export default function InstallBanner() {
             onClick={handleDismiss}
             className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
             style={{ background: 'var(--cs-subtle)', color: 'var(--cs-muted)', border: 'none', cursor: 'pointer' }}
-            aria-label="Dismiss install banner"
+            aria-label={t('install.dismiss')}
           >
             <X className="w-4 h-4" />
           </button>
@@ -144,7 +146,7 @@ export default function InstallBanner() {
             onClick={handleDismiss}
             className="btn-secondary w-auto px-4 py-3 text-sm"
           >
-            Maybe Later
+            {t('install.maybeLater')}
           </button>
           <button
             type="button"
@@ -153,7 +155,7 @@ export default function InstallBanner() {
             className="btn-primary flex-1 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <ArrowDownToLine className="w-4 h-4" />
-            {busy ? 'Opening...' : installSupportMode === 'prompt' ? 'Install' : 'How to Install'}
+            {busy ? t('install.opening') : installSupportMode === 'prompt' ? t('install.installApp') : t('install.howToInstall')}
           </button>
         </div>
 

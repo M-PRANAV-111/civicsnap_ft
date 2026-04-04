@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, isMobileDevice, useApp } from './context/AppContext.jsx';
+import LanguageSwitcher from './components/LanguageSwitcher.jsx';
 
 // Mobile pages
 import Sidebar from './components/Sidebar.jsx';
@@ -163,6 +164,17 @@ function AppRouter() {
       className={`relative w-full h-full flex flex-col ${isMobile ? 'max-w-md mx-auto' : ''}`}
       style={{ minHeight: '100dvh' }}
     >
+      {isMobile && (
+        <div
+          className="fixed z-30"
+          style={{
+            top: 'calc(0.75rem + env(safe-area-inset-top))',
+            right: '1rem',
+          }}
+        >
+          <LanguageSwitcher compact />
+        </div>
+      )}
       {isMobile ? <MobileRoutes /> : <DesktopRoutes />}
     </div>
   );

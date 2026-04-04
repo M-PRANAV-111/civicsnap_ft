@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react';
 import { ArrowDownToLine } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '../context/AppContext.jsx';
 
 export default function InstallCornerButton({
   compact = false,
-  label = 'Install App',
+  label,
   className = '',
   messageAlign = 'right',
 }) {
+  const { t } = useTranslation();
   const { canInstallApp, installApp, installAppHint, installSupportMode } = useApp();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const installLabel = label || t('install.installApp');
 
   useEffect(() => {
     if (!message) return undefined;
@@ -62,10 +65,14 @@ export default function InstallCornerButton({
         }
         style={buttonStyle}
         id={compact ? 'install-app-corner' : 'install-app-button'}
-        title="Install CivicSnap App"
+        title={t('install.installTitle')}
       >
         <ArrowDownToLine className="w-4 h-4" />
-        {!compact && <span>{busy ? 'Opening...' : installSupportMode === 'prompt' ? label : 'How to Install'}</span>}
+        {!compact && (
+          <span>
+            {busy ? t('install.opening') : installSupportMode === 'prompt' ? installLabel : t('install.howToInstall')}
+          </span>
+        )}
       </button>
 
       {message && (
